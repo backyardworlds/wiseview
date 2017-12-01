@@ -1,0 +1,10 @@
+# Example WiseView systemd service config
+[Unit]
+Description=Backyard Worlds Web Tools Service
+
+[Service]
+WorkingDirectory=/home/ubuntu/wiseview
+ExecStart=/usr/local/bin/uwsgi --ini wv/www/uwsgi.ini
+
+[Install]
+WantedBy=multi-user.target
