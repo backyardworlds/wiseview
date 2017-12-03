@@ -4,6 +4,8 @@ WiseView code for displaying unWISE image blinks
 # Web Application
 http://byw.tools/wiseview
 
+[example image blink](http://byw.tools/wiseview#ra=133.795140&dec=-7.245150&size=120&band=2&speed=274&trimbright=521.66&linear=1&color=gray&mode=fixed&coadd_mode=time-resolved&zoom=12)
+
 # License
 This is free and unencumbered software released into the public domain.
 
