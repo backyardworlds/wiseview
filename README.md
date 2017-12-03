@@ -32,3 +32,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 # Citation
 Please cite WiseView if you found it useful to your research
+
+# Background
+
+WiseView was originally developed in the context of the [Backyard Worlds: Planet 9](http://backyardworlds.org) citizen science motion search, but is broadly useful to both citizen scientists and professional astronomers seeking to understand the motion and/or variability of WISE sources.
