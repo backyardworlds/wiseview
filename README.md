@@ -1,5 +1,5 @@
 # WiseView
-WiseView code for displaying [http://unwise.me](unWISE) image blinks
+WiseView code for displaying [unWISE](http://unwise.me) image blinks
 
 # Web Application
 http://byw.tools/wiseview
