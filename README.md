@@ -1,5 +1,5 @@
 # WiseView
-WiseView website code for displaying unWISE images
+WiseView code for displaying unWISE image blinks
 
 # License
 This is free and unencumbered software released into the public domain.
