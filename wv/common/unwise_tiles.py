@@ -51,11 +51,11 @@ def array_to_cards(arr,full=False):
             vals = (arr["COADD_ID"],arr["BAND"],arr["EPOCH"],arr["RA"],arr["DEC"],arr["FORWARD"],arr["MJDMIN"],arr["MJDMAX"],arr["MJDMEAN"],arr["DT"],arr["N_EXP"],arr["COVMIN"],arr["COVMAX"],arr["COVMED"],arr["NPIX_COV0"],arr["NPIX_COV1"],arr["NPIX_COV2"],arr["LGAL"],arr["BGAL"],arr["LAMBDA"],arr["BETA"],arr["SCAMP_HEADER_EXISTS"],arr["SCAMP_CONTRAST"],arr["ASTRRMS1"],arr["ASTRRMS2"],arr["N_CALIB"],arr["N_BRIGHT"],arr["N_SE"],2,arr["NAXIS"][0],arr["NAXIS"][1],arr["CD"][0][0],arr["CD"][0][1],arr["CD"][1][0],arr["CD"][1][1],arr["CDELT"][0],arr["CDELT"][1],arr["CRPIX"][0],arr["CRPIX"][1],arr["CRVAL"][0],arr["CRVAL"][1],arr["LONGPOLE"],arr["LATPOLE"],arr["PV2"][0],arr["PV2"][1],arr["CTYPE"][0],arr["CTYPE"][1])
     else:
         if arr["SCAMP_HEADER_EXISTS"] == 0:
-            kwds = ("RA","DEC","NAXIS","NAXIS1","NAXIS2","CRPIX1","CRPIX2","CRVAL1","CRVAL2","CTYPE1","CTYPE2")
-            vals = (arr["RA"],arr["DEC"],2,2048,2048,1024.5,1024.5,arr["RA"],arr["DEC"],"RA---TAN","DEC--TAN")
+            kwds = ("RA","DEC","FORWARD","NAXIS","NAXIS1","NAXIS2","CRPIX1","CRPIX2","CRVAL1","CRVAL2","CTYPE1","CTYPE2")
+            vals = (arr["RA"],arr["DEC"],arr["FORWARD"],2,2048,2048,1024.5,1024.5,arr["RA"],arr["DEC"],"RA---TAN","DEC--TAN")
         else:
-            kwds = ("RA","DEC","ASTRRMS1","ASTRRMS2","NAXIS","NAXIS1","NAXIS2","CD1_1","CD1_2","CD2_1","CD2_2","CDELT1","CDELT2","CRPIX1","CRPIX2","CRVAL1","CRVAL2","LONGPOLE","LATPOLE","PV2_1","PV2_2","CTYPE1","CTYPE2")
-            vals = (arr["RA"],arr["DEC"],arr["ASTRRMS1"],arr["ASTRRMS2"],2,arr["NAXIS"][0],arr["NAXIS"][1],arr["CD"][0][0],arr["CD"][0][1],arr["CD"][1][0],arr["CD"][1][1],arr["CDELT"][0],arr["CDELT"][1],arr["CRPIX"][0],arr["CRPIX"][1],arr["CRVAL"][0],arr["CRVAL"][1],arr["LONGPOLE"],arr["LATPOLE"],arr["PV2"][0],arr["PV2"][1],arr["CTYPE"][0],arr["CTYPE"][1])
+            kwds = ("RA","DEC","FORWARD","ASTRRMS1","ASTRRMS2","NAXIS","NAXIS1","NAXIS2","CD1_1","CD1_2","CD2_1","CD2_2","CDELT1","CDELT2","CRPIX1","CRPIX2","CRVAL1","CRVAL2","LONGPOLE","LATPOLE","PV2_1","PV2_2","CTYPE1","CTYPE2")
+            vals = (arr["RA"],arr["DEC"],arr["FORWARD"],arr["ASTRRMS1"],arr["ASTRRMS2"],2,arr["NAXIS"][0],arr["NAXIS"][1],arr["CD"][0][0],arr["CD"][0][1],arr["CD"][1][0],arr["CD"][1][1],arr["CDELT"][0],arr["CDELT"][1],arr["CRPIX"][0],arr["CRPIX"][1],arr["CRVAL"][0],arr["CRVAL"][1],arr["LONGPOLE"],arr["LATPOLE"],arr["PV2"][0],arr["PV2"][1],arr["CTYPE"][0],arr["CTYPE"][1])
 
     h = aif.Header()
     cards = []
