@@ -4,6 +4,7 @@ import wv.common.unwise_tiles as ut
 import wv.common.touchspot as tspot
 import astropy.io.fits as aif
 import astropy.wcs as awcs
+import gzip
 
 path = "unwise/data/timeresolved"
 
@@ -50,7 +51,17 @@ def cutout(fitsfileobj,ra,dec,size,fits=False,scamp=None):
 
 
 def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
-                      scamp=None):
+                      scamp=None,covmap=False):
+    """
+    Download cutouts or full tiles given
+
+    Optionally provide a scamp header via "scamp".
+
+    May return fits images instead of flat arrays via "fits".
+
+    May return coverage maps alongside images with "covmap"
+    """
+
     # Build the URL
     path_ = "/".join(
         (path,
@@ -59,7 +70,6 @@ def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
          coadd_id, # the tile name itself
          "unwise-%s-w%d-img-m.fits"%(coadd_id,band)))
 
-
     # Get content from S3
     sio = StringIO.StringIO()
     tspot.bucket.download_fileobj(path_,sio)
@@ -67,12 +77,42 @@ def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
 
     # Perform cutouts if size is specified
     if size is not None:
-        return cutout(sio,ra,dec,size,fits=fits,scamp=scamp)
+        im = cutout(sio,ra,dec,size,fits=fits,scamp=scamp)
+    else:
+        im = sio.getvalue()
     
-    return sio.getvalue()
+    # If returning covmap, repeat process for covmap
+    if covmap:
+        # Build coverage map path
+        path_ = "/".join(
+        (path,
+         "e%03d"%int(epoch_num), # epoch in e### form
+         coadd_id[:3], # first 3 digits of RA
+         coadd_id, # the tile name itself
+         "unwise-%s-w%d-n-u.fits.gz"%(coadd_id,band)))
+
+        # Get content from S3
+        sio = StringIO.StringIO()
+        tspot.bucket.download_fileobj(path_,sio)
+        sio.seek(0)
+
+        gz = gzip.GzipFile(fileobj=sio,mode="rb").read()
+
+        # Perform cutouts if size is specified
+        if size is not None:
+            sio = StringIO.StringIO(gz)
+            sio.seek(0)
+            cm = cutout(sio,ra,dec,size,fits=fits,scamp=scamp)
+        else:
+            cm = gz
+
+        return im,cm
+    
+    return im
 
 
-def get(ra,dec,band,picker=lambda x: True,size=None,fits=False):
+    
+def get(ra,dec,band,picker=lambda x: True,size=None,fits=False,covmap=False):
     """
     Download tiles by ra, dec, and date range.
     If size is None, return full tiles. Otherwise, cut tiles
@@ -102,21 +142,23 @@ def get(ra,dec,band,picker=lambda x: True,size=None,fits=False):
             
             tiles.append(get_by_tile_epoch(e["COADD_ID"],e["EPOCH"],
                                            ra,dec,band,size=size,fits=fits,
-                                           scamp=ut.array_to_cards(e)))
+                                           scamp=ut.array_to_cards(e),
+                                           covmap=covmap))
     
     return tiles
 
 
-def get_by_mjd(ra,dec,band,start_mjd=0,end_mjd=2**23,size=None,fits=False):
+def get_by_mjd(ra,dec,band,start_mjd=0,end_mjd=2**23,size=None,fits=False,
+               covmap=False):
     """Get tiles with epochs within supplied date range"""
     return get(ra,dec,band,
                picker=lambda e,i: (band == e["BAND"] and
                                    not (end_mjd <= e["MJDMIN"] or
                                         start_mjd >= e["MJDMAX"])),
-               size=size,fits=fits)
+               size=size,fits=fits,covmap=covmap)
 
 
-def get_by_epoch_order(ra,dec,band,epochs,size=None,fits=False):
+def get_by_epoch_order(ra,dec,band,epochs,size=None,fits=False,covmap=False):
     """
     Return tiles with epochs within the order supplied.
     For example, epochs = (0,1) will return the first 2 epochs
@@ -125,17 +167,17 @@ def get_by_epoch_order(ra,dec,band,epochs,size=None,fits=False):
     """
     return get(ra,dec,band,
                picker=lambda e,i: (band == e["BAND"] and i in epochs),
-               size=size,fits=fits)
+               size=size,fits=fits,covmap=covmap)
 
 
-def get_by_epoch_name(ra,dec,band,epochs,size=None,fits=False):
+def get_by_epoch_name(ra,dec,band,epochs,size=None,fits=False,covmap=False):
     """
     Return tiles with epoch names as supplied, like "e000"
     """
     return get(ra,dec,band,
                picker=lambda e,i: (band == e["BAND"] and
                                    ("e%03d"%(e["epoch"])) in epochs),
-               size=size,fits=fits)
+               size=size,fits=fits,covmap=covmap)
 
 
 def main():

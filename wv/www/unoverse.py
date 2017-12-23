@@ -97,6 +97,15 @@ def find_tar_fits(tar_data):
     return fits_files
 
 
+def add_arrs(arrs):
+    ims,cms = [],[]
+    for im,cm in arrs:
+        ims.append(im)
+        cms.append(cm)
+
+    return np.average(ims,weights=cms,axis=0)
+
+
 def request_cutouts(ra, dec, size, band, version):
     if version in ("allwise","neo1","neo2"):
         url = PATH.format(ra=ra, dec=dec, size=size, band=band, version=version)
@@ -107,6 +116,26 @@ def request_cutouts(ra, dec, size, band, version):
         cutouts = [aif.getdata(StringIO(c.read())) for c in find_tar_fits(response.content)]
         if not cutouts:
             raise Exception("No fits files found")
+    elif version in ("pre","post"):
+        if version == "pre":
+            # Fetch all pre-hibernation coadds
+            cutouts = unwcutout.get_by_mjd(ra,dec,band,
+                                           end_mjd=55609.8333333333,
+                                           size=size,
+                                           covmap=True)
+            
+            # Add them together
+            cutouts = [add_arrs(cutouts)]
+        else:
+            # Fetch all post-hibernation coadds
+            cutouts = unwcutout.get_by_mjd(ra,dec,band,
+                                           start_mjd=55609.8333333333,
+                                           size=size,
+                                           covmap=True)
+            
+            # Add them together
+            cutouts = [add_arrs(cutouts)]
+        
     elif version[4] in "pm" and version[8] == "/":
         tile,epoch = version.split("/")
         cutouts = [unwcutout.get_by_tile_epoch(tile,epoch,ra,dec,band,size=size)]

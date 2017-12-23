@@ -139,6 +139,7 @@
 
 	        this.versions = [];
                 this.full_depth_versions = ["allwise", "neo1", "neo2"];
+                this.pre_post_versions = ["pre","post"];
 
                 this.updateSpeed = function () {
                     clearInterval(this.interval);
@@ -332,6 +333,10 @@
                     
                     if (this.coadd_mode_input.val() == "full-depth") {
                         this.versions = this.full_depth_versions.slice()
+                        this.make_imgs()
+                        this.draw();
+                    } else if (this.coadd_mode_input.val() == "pre-post-hibernation") {
+                        this.versions = this.pre_post_versions.slice()
                         this.make_imgs()
                         this.draw();
                     } else {
@@ -552,6 +557,7 @@
 		<option value="parallax-cancelling-e0">parallax-cancelling-e0</option>
 		<option value="parallax-cancelling-e1">parallax-cancelling-e1</option>
 		<option value="full-depth">full-depth</option>
+		<option value="pre-post-hibernation">pre-post-hibernation</option>
 	      </select>
             </div>
           </div>
