@@ -79,6 +79,7 @@ def __init(atlas):
     tr_indices_ = []
     last = None
     # 110843,110860):#
+    #for i in xrange(188488,188488+20):
     for i in xrange(len(tr_atlas_epochs)):
         row = tr_atlas_epochs[i]
         

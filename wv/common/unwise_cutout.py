@@ -8,26 +8,29 @@ import gzip
 
 path = "unwise/data/timeresolved"
 
-# TODO: use the good headers
 def cutout(fitsfileobj,ra,dec,size,fits=False,scamp=None):
     hdul = aif.open(fitsfileobj)
 
-    if scamp is not None:
-        wcs = awcs.WCS(scamp)
-    else:
-        wcs = awcs.WCS(hdul[0].header)        
+    # Using template headers for cutouts isntead of SCAMP
+    wcs = awcs.WCS(hdul[0].header)        
 
+    # Get pixel coordinates from ra,dec
     px,py = wcs.wcs_world2pix(np.array([[ra,dec]]),0)[0]
 
+    # Calculate bottom and left positions of cutout
     bot = int(py)-int(size/2)
     left = int(px)-int(size/2)
-    
+
+    # Perform cutout
     cut = hdul[0].data[max(bot,0):min(int(py)+int(size/2)+1,2048),
                        max(left,0):min(int(px)+int(size/2)+1,2048)]
 
     # Convert to fits
     if fits and scamp is not None:
-        # TODO: fitsiness, WCS header, etc.. Astropy doesn't support it w/ cutout
+        # Use SCAMP headers to find px,py of RA, Dec
+        wcs = awcs.WCS(scamp)
+        px,py = wcs.wcs_world2pix(np.array([[ra,dec]]),0)[0]
+        
         cutf = aif.PrimaryHDU(cut,header=scamp)
         cutf.header["NAXIS1"] = cut.shape[1] # X, RA
         cutf.header["NAXIS2"] = cut.shape[0] # Y, Dec
