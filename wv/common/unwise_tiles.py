@@ -78,7 +78,7 @@ def __init(atlas):
     
     tr_indices_ = []
     last = None
-    for i in len(tr_atlas_epochs)):
+    for i in xrange(len(tr_atlas_epochs)):
         row = tr_atlas_epochs[i]
         
         # Track when switching coadds and add index to tr_indices
