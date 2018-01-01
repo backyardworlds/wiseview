@@ -115,7 +115,8 @@ def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
 
 
     
-def get(ra,dec,band,picker=lambda x: True,size=None,fits=False,covmap=False):
+def get(ra,dec,band,picker=lambda x: True,size=None,fits=False,covmap=False,
+        first_only=False):
     """
     Download tiles by ra, dec, and date range.
     If size is None, return full tiles. Otherwise, cut tiles
@@ -147,18 +148,19 @@ def get(ra,dec,band,picker=lambda x: True,size=None,fits=False,covmap=False):
                                            ra,dec,band,size=size,fits=fits,
                                            scamp=ut.array_to_cards(e),
                                            covmap=covmap))
-    
+        if first_only: break
     return tiles
 
 
 def get_by_mjd(ra,dec,band,start_mjd=0,end_mjd=2**23,size=None,fits=False,
-               covmap=False):
+               covmap=False,first_only=False):
     """Get tiles with epochs within supplied date range"""
     return get(ra,dec,band,
                picker=lambda e,i: (band == e["BAND"] and
                                    not (end_mjd <= e["MJDMIN"] or
                                         start_mjd >= e["MJDMAX"])),
-               size=size,fits=fits,covmap=covmap)
+               size=size,fits=fits,covmap=covmap,
+               first_only=first_only)
 
 
 def get_by_epoch_order(ra,dec,band,epochs,size=None,fits=False,covmap=False):

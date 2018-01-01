@@ -122,7 +122,8 @@ def request_cutouts(ra, dec, size, band, version):
             cutouts = unwcutout.get_by_mjd(ra,dec,band,
                                            end_mjd=55609.8333333333,
                                            size=size,
-                                           covmap=True)
+                                           covmap=True,
+                                           first_only=True)
             
             # Add them together
             cutouts = [add_arrs(cutouts)]
@@ -131,7 +132,8 @@ def request_cutouts(ra, dec, size, band, version):
             cutouts = unwcutout.get_by_mjd(ra,dec,band,
                                            start_mjd=55609.8333333333,
                                            size=size,
-                                           covmap=True)
+                                           covmap=True,
+                                           first_only=True)
             
             # Add them together
             cutouts = [add_arrs(cutouts)]
