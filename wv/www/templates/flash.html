@@ -116,6 +116,11 @@
 
         <script>
             var url = "/convert?";
+            
+            function mjd_to_aarondate (mjd) {
+                d = new Date(-3506716800000+(mjd*86400000))
+                return d.getFullYear()+"."+(((d.getMonth()/12.0)*10).toPrecision(1))
+            }
 
             function WiseSwapper () {
                 this.container = jQuery("#image");
@@ -135,11 +140,13 @@
                 this.zoom_output = jQuery("#zoomValue");
                 this.ver_output = jQuery("#verValue");
                 this.canvas = jQuery("#daCanvas");
+                this.pmra_input = jQuery("#pmraInput");
+                this.pmdec_input = jQuery("#pmdecInput");
                 this.context = this.canvas.get(0).getContext("2d");
 
 	        this.versions = [];
-                this.full_depth_versions = ["allwise", "neo1", "neo2"];
-                this.pre_post_versions = ["pre","post"];
+	        this.epochs = [];
+                this.full_depth_versions = ["allwise", "neo1", "neo2", "neo3"];
 
                 this.updateSpeed = function () {
                     clearInterval(this.interval);
@@ -240,14 +247,16 @@
                     this.coadd_mode_input.val(map.coadd_mode || "time-resolved");
                     this.linear_input.val(map.linear || 0.2);
                     this.trimbright_input.val(map.trimbright || 99.2);
+                    this.pmra_input.val(map.pmra || 0);
+                    this.pmdec_input.val(map.pmdec || 0);
                     this.zoom_input.val(map.zoom || 10);
 
                     this.restart();
                 };
 
                 this.parseLoc = function () {
-                    var loc_split = this.loc_input.val().split(/(?:\s*,?)\s+/);
-                    return [loc_split[0].trim(), loc_split[1].trim()];
+                    var loc_split = /([0-9\.]+).*?([+\-]{0,1}[0-9\.]+)/g.exec(this.loc_input.val());
+                    return [loc_split[1].trim(), loc_split[2].trim()];
                 };
 
                 this.reset = function () {
@@ -286,20 +295,55 @@
                     
                     var that = this;
                     
-		    this.versions.forEach(function (value) {
-			var new_url = url + jQuery.param({
-			    ra: loc_split[0], 
-			    dec: loc_split[1], 
-			    size: (~~(that.size_input.val()/2.75)), // Convert arcseconds to pixels
-			    band: that.band_input.val(), 
-			    color: that.color_input.val(), 
-			    mode: that.mode_input.val(), 
-			    coadd_mode: that.coadd_mode_input.val(), 
-			    linear: that.linear_input.val(), 
-			    trimbright: that.trimbright_input.val(),
-			    zoom: that.zoom_input.val(),
-			    version: value,
-			});
+		    for (v in this.versions) {
+                        if (this.epochs === null) {
+                            // Legacy mode for full-depth
+			    var new_url = url + jQuery.param({
+				ra: loc_split[0], 
+				dec: loc_split[1], 
+				size: (~~(that.size_input.val()/2.75)), // Convert arcseconds to pixels
+				band: that.band_input.val(), 
+				color: that.color_input.val(), 
+				mode: that.mode_input.val(), 
+				coadd_mode: that.coadd_mode_input.val(), 
+				linear: that.linear_input.val(), 
+				trimbright: that.trimbright_input.val(),
+				zoom: that.zoom_input.val(),
+				version: this.versions[v],
+			    });
+			} else if ("px" in this.epochs[v]) {
+			    var new_url = url + jQuery.param({
+				ra: loc_split[0], 
+				dec: loc_split[1], 
+				size: (~~(that.size_input.val()/2.75)), // Convert arcseconds to pixels
+				band: that.band_input.val(), 
+				color: that.color_input.val(), 
+				mode: that.mode_input.val(), 
+				coadd_mode: that.coadd_mode_input.val(), 
+				linear: that.linear_input.val(), 
+				trimbright: that.trimbright_input.val(),
+				zoom: that.zoom_input.val(),
+				epochs: this.epochs[v]["epochs"],
+				px: this.epochs[v]["px"],
+				py: this.epochs[v]["py"],
+				tile: this.epochs[v]["tile"],
+			    },true);
+			} else {
+			    var new_url = url + jQuery.param({
+				ra: loc_split[0], 
+				dec: loc_split[1], 
+				size: (~~(that.size_input.val()/2.75)), // Convert arcseconds to pixels
+				band: that.band_input.val(), 
+				color: that.color_input.val(), 
+				mode: that.mode_input.val(), 
+				coadd_mode: that.coadd_mode_input.val(), 
+				linear: that.linear_input.val(), 
+				trimbright: that.trimbright_input.val(),
+				zoom: that.zoom_input.val(),
+				epochs: this.epochs[v]["epochs"],
+				tile: this.epochs[v]["tile"],
+			    },true);
+			}
 			var new_img = document.createElement("img");
 			new_img.setAttribute("src", new_url);
 			jQuery(new_img).on("load", function () {
@@ -307,7 +351,7 @@
 			    that.updateZoom();
 			});
 			that.images.push(new_img);
-		    });
+		    }
 		};
                 
                 this.notifygo = function () { console.log("Fired input changed"); }
@@ -329,53 +373,69 @@
                         jQuery("#trimbrightInput").attr("min",75.0)
                     }
                     
+                    if (this.coadd_mode_input.val() == "shift-and-add") {
+                        jQuery("#pmraRow").show()
+                        jQuery("#pmdecRow").show()
+                    } else {
+                        jQuery("#pmraRow").hide()
+                        jQuery("#pmdecRow").hide()
+                    }
+                    
                     var that = this;
                     
                     if (this.coadd_mode_input.val() == "full-depth") {
-                        this.versions = this.full_depth_versions.slice()
-                        this.make_imgs()
+                        this.versions = this.full_depth_versions.slice();
+			this.epochs = null;
+                        this.make_imgs();
                         this.draw();
-                    } else if (this.coadd_mode_input.val() == "pre-post-hibernation") {
-                        this.versions = this.pre_post_versions.slice()
-                        this.make_imgs()
-                        this.draw();
-                    } else {
-			jQuery.getJSON("/tiles", {
+                    } else if (this.coadd_mode_input.val() == "shift-and-add"){
+			var band = that.band_input.val();
+			if (band == 3) { band = 1; } // Use W1 meta for W1 and W2... can fail in corner cases :(
+			
+			jQuery.getJSON("/coadd_strategy", {
 			    "ra": loc_split[0],
-			    "dec": loc_split[1]
+			    "dec": loc_split[1],
+			    "band": band,
+			    "coadd_mode": this.coadd_mode_input.val(),
+			    "pmra": this.pmra_input.val(),
+			    "pmdec": this.pmdec_input.val(),
 			}, function (response) {
 			    that.versions = [];
-			        
-			    var band = that.band_input.val();
-			    if (band == 3) { band = 1; } // Use W1 meta for W1 and W2... can fail in corner cases :(
-			    var baseline = 0;
-			    if (that.coadd_mode_input.val() == "parallax-cancelling-e1") { baseline = 1; }
-			        
-			    // Find e0
-			    var e0;
-			    // Only use one tile
-			    for (e in response["tiles"][0]["epochs"]) {
-			        e = response["tiles"][0]["epochs"][e];
-			        if (Number(e["band"]) == band) {
-			            if (baseline == 0) { e0 = e; break; }
-			            baseline--;
-			        }
-			    }
+			    that.epochs = response["solutions"];
 			    
-			    for (e in response["tiles"][0]["epochs"]) {
-			        e = response["tiles"][0]["epochs"][e];
-			        if (String(that.coadd_mode_input.val()).startsWith("parallax-cancelling")) {
-			            var mean0 = Number(e0["mjdmean"]);
-			            var meanx = Number(e["mjdmean"]);
-			            var diff = Math.abs((mean0%365)-(meanx%365))
-			            if (e["band"] == band && (diff < 90 || diff > (395-90))) {
-			                that.versions.push(response["tiles"][0]["coadd_id"]+"/"+e["epoch"]);
-			            }
-			        } else {
-			            if (e["band"] == band) {
-			                that.versions.push(response["tiles"][0]["coadd_id"]+"/"+e["epoch"]);
-			            }
-			        }
+			    for (s in response["solutions"]) {
+			        sol = response["solutions"][s];
+			        
+			        // Create titles
+			        that.versions.push(mjd_to_aarondate(sol["mjdmeans"][0])+" - "+mjd_to_aarondate(sol["mjdmeans"][sol["mjdmeans"].length-1]))
+			        
+			        // Epochs to query
+			        //that.epochs.push(sol["epochs"])
+			    }
+                            that.make_imgs();
+                            that.draw();
+			})
+		    } else {
+			var band = that.band_input.val();
+			if (band == 3) { band = 1; } // Use W1 meta for W1 and W2... can fail in corner cases :(
+			
+			jQuery.getJSON("/coadd_strategy", {
+			    "ra": loc_split[0],
+			    "dec": loc_split[1],
+			    "band": band,
+			    "coadd_mode": this.coadd_mode_input.val()
+			}, function (response) {
+			    that.versions = [];
+			    that.epochs = response["solutions"];
+			    
+			    for (s in response["solutions"]) {
+			        sol = response["solutions"][s];
+			        
+			        // Create titles
+			        that.versions.push(mjd_to_aarondate(sol["mjdmeans"][0])+" - "+mjd_to_aarondate(sol["mjdmeans"][sol["mjdmeans"].length-1]))
+			        
+			        // Epochs to query
+			        //that.epochs.push(sol["epochs"])
 			    }
                             that.make_imgs();
                             that.draw();
@@ -548,16 +608,35 @@
               <input type="range" min="1" max="20" value="10" id="zoomInput">
 	    </div>
 	  </div>
+          <div class="row" id="pmraRow">
+            <div>
+              <label for="pmraInput" style="display: inline;">pmra (mas/yr):</label>
+              <input type="text" class="resetters" id="pmraInput" value="0">
+            </div>
+          </div>
+          <div class="row" id="pmdecRow">
+            <div>
+              <label for="pmdecInput" style="display: inline;">pmdec (mas/yr):</label>
+              <input type="text" class="resetters" id="pmdecInput" value="0">
+            </div>
+          </div>
 	  <div class="row">
             <div>
               <label for="coaddModeInput" style="display: inline;">Coadd Mode</label>
 	      <select class="resetters" id="coaddModeInput">
 		<option selected disabled>Drawing Mode</option>
 		<option select="selected" value="time-resolved">time-resolved</option>
-		<option value="parallax-cancelling-e0">parallax-cancelling-e0</option>
-		<option value="parallax-cancelling-e1">parallax-cancelling-e1</option>
+		<option value="parallax-cancelling-forward">parallax-cancelling-backward</option>
+		<option value="parallax-cancelling-backward">parallax-cancelling-forward</option>
 		<option value="full-depth">full-depth</option>
-		<option value="pre-post-hibernation">pre-post-hibernation</option>
+		<option value="window-0.5-year">window-0.5-year</option>
+		<option value="window-1.0-year">window-1.0-year</option>
+		<option value="window-1.5-year">window-1.5-year</option>
+		<option value="window-2.0-year">window-2.0-year</option>
+		<option value="window-2.5-year">window-2.5-year</option>
+		<option value="window-3.0-year">window-3.0-year</option>
+		<option value="parallax-enhancing">parallax-enhancing</option>
+		<option value="shift-and-add">shift-and-add</option>
 	      </select>
             </div>
           </div>

@@ -8,11 +8,15 @@ import gzip
 
 path = "unwise/data/timeresolved"
 
-def cutout(fitsfileobj,ra,dec,size,fits=False,scamp=None):
+def cutout(fitsfileobj,ra,dec,size,fits=False,scamp=None,
+           wcs=None):
+    # TODO: FIX SCAMP
+    scamp=None
     hdul = aif.open(fitsfileobj)
 
     # Using template headers for cutouts isntead of SCAMP
-    wcs = awcs.WCS(hdul[0].header)        
+    if wcs is None:
+        wcs = awcs.WCS(hdul[0].header)
 
     # Get pixel coordinates from ra,dec
     px,py = wcs.wcs_world2pix(np.array([[ra,dec]]),0)[0]
@@ -73,6 +77,9 @@ def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
          coadd_id, # the tile name itself
          "unwise-%s-w%d-img-m.fits"%(coadd_id,band)))
 
+    # Fetch pre-built WCS solution
+    wcs = ut.tr_cutout_solutions[ut.tr_coadd_to_index[coadd_id]]
+    
     # Get content from S3
     sio = StringIO.StringIO()
     tspot.bucket.download_fileobj(path_,sio)
@@ -80,7 +87,7 @@ def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
 
     # Perform cutouts if size is specified
     if size is not None:
-        im = cutout(sio,ra,dec,size,fits=fits,scamp=scamp)
+        im = cutout(sio,ra,dec,size,fits=fits,scamp=scamp,wcs=wcs)
     else:
         im = sio.getvalue()
     
@@ -92,7 +99,7 @@ def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
          "e%03d"%int(epoch_num), # epoch in e### form
          coadd_id[:3], # first 3 digits of RA
          coadd_id, # the tile name itself
-         "unwise-%s-w%d-n-u.fits.gz"%(coadd_id,band)))
+         "unwise-%s-w%d-n-m.fits.gz"%(coadd_id,band)))
 
         # Get content from S3
         sio = StringIO.StringIO()
@@ -105,7 +112,7 @@ def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
         if size is not None:
             sio = StringIO.StringIO(gz)
             sio.seek(0)
-            cm = cutout(sio,ra,dec,size,fits=fits,scamp=scamp)
+            cm = cutout(sio,ra,dec,size,fits=fits,scamp=scamp,wcs=wcs)
         else:
             cm = gz
 
@@ -113,76 +120,6 @@ def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
     
     return im
 
-
-    
-def get(ra,dec,band,picker=lambda x: True,size=None,fits=False,covmap=False,
-        first_only=False):
-    """
-    Download tiles by ra, dec, and date range.
-    If size is None, return full tiles. Otherwise, cut tiles
-    to fit.
-    """
-    tiles = []
-    
-    # For all tiles covering RA, Dec position
-    bandcnt = [0,0]
-    for _,epochs in ut.get_tiles(ra,dec):
-
-        # For all epochs covered by given date range
-        for i in xrange(len(epochs)):
-            e = epochs[i]
-
-            if e["BAND"] == 1:
-                i = bandcnt[0]
-                bandcnt[0] += 1
-            elif e["BAND"] == 2:
-                i = bandcnt[1]
-                bandcnt[1] += 1
-            else:
-                raise Exception("Invalid band %d"%e["BAND"])
-
-            # Filter epochs by picker
-            if not picker(e,i): continue
-            
-            tiles.append(get_by_tile_epoch(e["COADD_ID"],e["EPOCH"],
-                                           ra,dec,band,size=size,fits=fits,
-                                           scamp=ut.array_to_cards(e),
-                                           covmap=covmap))
-        if first_only: break
-    return tiles
-
-
-def get_by_mjd(ra,dec,band,start_mjd=0,end_mjd=2**23,size=None,fits=False,
-               covmap=False,first_only=False):
-    """Get tiles with epochs within supplied date range"""
-    return get(ra,dec,band,
-               picker=lambda e,i: (band == e["BAND"] and
-                                   not (end_mjd <= e["MJDMIN"] or
-                                        start_mjd >= e["MJDMAX"])),
-               size=size,fits=fits,covmap=covmap,
-               first_only=first_only)
-
-
-def get_by_epoch_order(ra,dec,band,epochs,size=None,fits=False,covmap=False):
-    """
-    Return tiles with epochs within the order supplied.
-    For example, epochs = (0,1) will return the first 2 epochs
-    in which the tile appeared, regardless of whether the unwise
-    epoch numbering is e000 and e001
-    """
-    return get(ra,dec,band,
-               picker=lambda e,i: (band == e["BAND"] and i in epochs),
-               size=size,fits=fits,covmap=covmap)
-
-
-def get_by_epoch_name(ra,dec,band,epochs,size=None,fits=False,covmap=False):
-    """
-    Return tiles with epoch names as supplied, like "e000"
-    """
-    return get(ra,dec,band,
-               picker=lambda e,i: (band == e["BAND"] and
-                                   ("e%03d"%(e["epoch"])) in epochs),
-               size=size,fits=fits,covmap=covmap)
 
 
 def main():
@@ -195,10 +132,14 @@ def main():
     ap.add_argument("--size",default=None,type=int)
     args = ap.parse_args()
 
-    #tiles = get_by_mjd(args.ra,args.dec,args.band,args.start_mjd,args.end_mjd)
-    tiles = get_by_epoch_order(args.ra,args.dec,args.band,epochs=(args.epoch,),size=args.size,fits=True)
-    import sys
-    sys.stdout.write(tiles[0])
+    tiles = ut.get_tiles(args.ra,args.dec).iloc[0,:]
+    cutout = get_by_tile_epoch(tiles["COADD_ID"],args.ra,args.dec,
+                               args.band,args.epoch,
+                               size=args.size,fits=True)
+    #import sys
+    #sys.stdout.write(tiles[0])
+    print "tiles",len(tiles)
+    print [len(t) for t in tiles]
 
     
 if __name__ == "__main__": main()
