@@ -3,8 +3,12 @@
 Description=Backyard Worlds Web Tools Service
 
 [Service]
-WorkingDirectory=/home/ubuntu/wiseview
+WorkingDirectory=/home/wiseview/wiseview
 ExecStart=/usr/local/bin/uwsgi --ini wv/www/uwsgi.ini
+Restart=always
+KillSignal=SIGQUIT
+Type=notify
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target

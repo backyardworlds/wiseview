@@ -8,6 +8,7 @@ import astropy.io.fits as aif
 import wv.common.rdballtree as rdbt
 import cPickle as pickle
 import collections
+import pandas as pd
 
 # Units are degrees unless stated
 tile_width = (  2048 # pixels
@@ -19,14 +20,36 @@ tile_corner_radius = math.sqrt((
 
 
 tile_tree = None
-# Store RA, Dec, Idx in indices
-# Use positional lookups to get offset into
-# _data, _epochs
-tr_atlas_indices = None
-# Store one fitsy Header per coadd_id for testing
-# position within coadd with WCS
-tr_atlas_headers = None
-tr_atlas_epochs = None
+
+# Store WCS solutions for all tiles
+tr_cutout_solutions = None
+
+# Store coordinates for all tiles
+tr_cutout_coords = None
+
+# Store full index
+tr_index = None
+
+# Dictionary for quick coadd_id -> tr_cutout_* indices
+tr_coadd_to_index = None
+
+
+
+def build_cutout_header(coadd):
+    kwds = ("RA","DEC","FORWARD","NAXIS","NAXIS1","NAXIS2","CRPIX1","CRPIX2","CRVAL1","CRVAL2","CTYPE1","CTYPE2",
+            "CD1_1","CD1_2","CD2_1","CD2_2")
+    vals = (coadd["RA"],coadd["DEC"],coadd["FORWARD"],2,2048,2048,1024.5,1024.5,coadd["RA"],coadd["DEC"],"RA---TAN","DEC--TAN",
+            -0.000763888888889,0,0,0.000763888888889)
+    
+    h = aif.Header()
+    cards = []
+    for i in xrange(len(kwds)):
+        kwd = kwds[i]
+        cards.append((kwd,vals[i],""))
+
+    h.extend(cards)
+
+    return h
 
 
 def array_to_cards(arr,full=False):
@@ -42,7 +65,8 @@ def array_to_cards(arr,full=False):
     # ('NAXIS', '>i4', (2,)), ('CD', '>f8', (2, 2)), ('CDELT', '>f8', (2,)),
     # ('CRPIX', '>f8', (2,)), ('CRVAL', '>f8', (2,)), ('CTYPE', 'S8', (2,)),
     # ('LONGPOLE', '>f8'), ('LATPOLE', '>f8'), ('PV2', '>f8', (2,))
-    if full:
+    # TEMPORARY
+    if False and full:
         if arr["SCAMP_HEADER_EXISTS"] == 0:
             kwds = ("COADD_ID","BAND","EPOCH","RA","DEC","FORWARD","MJDMIN","MJDMAX","MJDMEAN","DT","N_EXP","COVMIN","COVMAX","COVMED","HIERARCH NPIX_COV0","HIERARCH NPIX_COV1","HIERARCH NPIX_COV2","LGAL","BGAL","LAMBDA","BETA","HIERARCH SCAMP_HEADER_EXISTS","HIERARCH SCAMP_CONTRAST","ASTRRMS1","ASTRRMS2","N_CALIB","N_BRIGHT","N_SE","NAXIS","NAXIS1","NAXIS2","CTYPE1","CTYPE2")
             vals = (arr["COADD_ID"],arr["BAND"],arr["EPOCH"],arr["RA"],arr["DEC"],arr["FORWARD"],arr["MJDMIN"],arr["MJDMAX"],arr["MJDMEAN"],arr["DT"],arr["N_EXP"],arr["COVMIN"],arr["COVMAX"],arr["COVMED"],arr["NPIX_COV0"],arr["NPIX_COV1"],arr["NPIX_COV2"],arr["LGAL"],arr["BGAL"],arr["LAMBDA"],arr["BETA"],arr["SCAMP_HEADER_EXISTS"],arr["SCAMP_CONTRAST"],arr["ASTRRMS1"],arr["ASTRRMS2"],arr["N_CALIB"],arr["N_BRIGHT"],arr["N_SE"],2,arr["NAXIS"][0],arr["NAXIS"][1],arr["CTYPE"][0],arr["CTYPE"][1])
@@ -50,13 +74,14 @@ def array_to_cards(arr,full=False):
             kwds = ("COADD_ID","BAND","EPOCH","RA","DEC","FORWARD","MJDMIN","MJDMAX","MJDMEAN","DT","N_EXP","COVMIN","COVMAX","COVMED","HIERARCH NPIX_COV0","HIERARCH NPIX_COV1","HIERARCH NPIX_COV2","LGAL","BGAL","LAMBDA","BETA","HIERARCH SCAMP_HEADER_EXISTS","HIERARCH SCAMP_CONTRAST","ASTRRMS1","ASTRRMS2","N_CALIB","N_BRIGHT","N_SE","NAXIS","NAXIS1","NAXIS2","CD1_1","CD1_2","CD2_1","CD2_2","CDELT1","CDELT2","CRPIX1","CRPIX2","CRVAL1","CRVAL2","LONGPOLE","LATPOLE","PV2_1","PV2_2","CTYPE1","CTYPE2")
             vals = (arr["COADD_ID"],arr["BAND"],arr["EPOCH"],arr["RA"],arr["DEC"],arr["FORWARD"],arr["MJDMIN"],arr["MJDMAX"],arr["MJDMEAN"],arr["DT"],arr["N_EXP"],arr["COVMIN"],arr["COVMAX"],arr["COVMED"],arr["NPIX_COV0"],arr["NPIX_COV1"],arr["NPIX_COV2"],arr["LGAL"],arr["BGAL"],arr["LAMBDA"],arr["BETA"],arr["SCAMP_HEADER_EXISTS"],arr["SCAMP_CONTRAST"],arr["ASTRRMS1"],arr["ASTRRMS2"],arr["N_CALIB"],arr["N_BRIGHT"],arr["N_SE"],2,arr["NAXIS"][0],arr["NAXIS"][1],arr["CD"][0][0],arr["CD"][0][1],arr["CD"][1][0],arr["CD"][1][1],arr["CDELT"][0],arr["CDELT"][1],arr["CRPIX"][0],arr["CRPIX"][1],arr["CRVAL"][0],arr["CRVAL"][1],arr["LONGPOLE"],arr["LATPOLE"],arr["PV2"][0],arr["PV2"][1],arr["CTYPE"][0],arr["CTYPE"][1])
     else:
-        if arr["SCAMP_HEADER_EXISTS"] == 0:
+        # TEMPORARY
+        if True or arr["SCAMP_HEADER_EXISTS"] == 0:
             kwds = ("RA","DEC","FORWARD","NAXIS","NAXIS1","NAXIS2","CRPIX1","CRPIX2","CRVAL1","CRVAL2","CTYPE1","CTYPE2")
             vals = (arr["RA"],arr["DEC"],arr["FORWARD"],2,2048,2048,1024.5,1024.5,arr["RA"],arr["DEC"],"RA---TAN","DEC--TAN")
         else:
             kwds = ("RA","DEC","FORWARD","ASTRRMS1","ASTRRMS2","NAXIS","NAXIS1","NAXIS2","CD1_1","CD1_2","CD2_1","CD2_2","CDELT1","CDELT2","CRPIX1","CRPIX2","CRVAL1","CRVAL2","LONGPOLE","LATPOLE","PV2_1","PV2_2","CTYPE1","CTYPE2")
             vals = (arr["RA"],arr["DEC"],arr["FORWARD"],arr["ASTRRMS1"],arr["ASTRRMS2"],2,arr["NAXIS"][0],arr["NAXIS"][1],arr["CD"][0][0],arr["CD"][0][1],arr["CD"][1][0],arr["CD"][1][1],arr["CDELT"][0],arr["CDELT"][1],arr["CRPIX"][0],arr["CRPIX"][1],arr["CRVAL"][0],arr["CRVAL"][1],arr["LONGPOLE"],arr["LATPOLE"],arr["PV2"][0],arr["PV2"][1],arr["CTYPE"][0],arr["CTYPE"][1])
-
+            
     h = aif.Header()
     cards = []
     for i in xrange(len(kwds)):
@@ -64,46 +89,50 @@ def array_to_cards(arr,full=False):
         cards.append((kwd,vals[i],""))
 
     h.extend(cards)
+
     return h
 
 
-def __init(atlas):
-    global tile_tree, tr_atlas_epochs, tr_atlas_indices, tr_atlas_headers
-
+def __init(index):
+    global tile_tree, tr_cutout_solutions, tr_cutout_coords, tr_scamp_solutions, tr_index, tr_coadd_to_index
+    # OK. w2 same as w1. CD all the same. get tiles from index, hardcode CD, build cutout atlas every time in memory. scamp separate
     # Initialize atlas
     # !!!ERRATUM!!!
     # astropy's HDUList is NOT concurrency safe.
-    tr_atlas_epochs = aif.open(atlas)[1].data
-    tr_atlas_headers = []
-    
-    tr_indices_ = []
-    last = None
-    # 110843,110860):#
-    #for i in xrange(188488,188488+20):
-    for i in xrange(len(tr_atlas_epochs)):
-        row = tr_atlas_epochs[i]
-        
-        # Track when switching coadds and add index to tr_indices
-        coadd_id = row[0]
-        if coadd_id != last:
-            # Switching to new coadd_id
-            ra,dec = row[3],row[4]
-            
-            # Add index
-            tr_indices_.append((i,ra,dec))
+    data = aif.open(index)[1].data
 
-            # Add one header
-            # This is... slow. very very very very very slow.
-            head = array_to_cards(row)
-            tr_atlas_headers.append(head)
+    tr_index = pd.DataFrame(data.tolist(),
+                            columns=data.names)
+    tr_index.set_index(["COADD_ID","EPOCH","BAND"],inplace=True)
 
-            last = coadd_id
+    # Enumerate all finding coords from any epoch of each tile
+    # Assuming W2 and W1 first epoch coadds are all the same
+    # and the CD parameters are identical
+    # (they were as of neo3)
+    tr_cutout_solutions = []
+    tr_cutout_coords = []
+    tr_coadd_to_index = {}
 
-    tr_atlas_indices = np.array(tr_indices_,dtype=[("IDX","i4"),("RA","f4"),
-                                                   ("DEC","f4")])
+    for coadd_id,coadds in tr_index.groupby(level=[0]):
+        tr_coadd_to_index[coadd_id] = len(tr_cutout_coords)
+        # Pick any coadd
+        coadd = coadds.iloc[0,:]
+
+        # Store index for this ra, dec
+        tr_cutout_coords.append((coadd_id,coadd["RA"],coadd["DEC"]))
+
+        # Store a WCS solution for the coadd
+        h = build_cutout_header(coadd)
+        wcs = awcs.WCS(h)
+        tr_cutout_solutions.append(wcs)
+
+    # TODO: Build SCAMP header support again
+
+    tr_cutout_coords = pd.DataFrame(tr_cutout_coords,
+                                    columns=["COADD_ID","RA","DEC"])
     
     # Build global tile tree (insignificant improvement w/ cache file)
-    tile_tree = rdbt.rdtree(tr_atlas_indices)
+    tile_tree = rdbt.rdtree(tr_cutout_coords)
 
 
 def _tile_contains_position(idx,ra,dec):
@@ -113,7 +142,7 @@ def _tile_contains_position(idx,ra,dec):
     Return None,epochs if not contained
     """
     # Get a WCS
-    wcs = awcs.WCS(tr_atlas_headers[idx])
+    wcs = tr_cutout_solutions[idx]
     
     # Find pixel coordinates of ra, dec
     px,py = wcs.wcs_world2pix(np.array([[ra,dec]]),0)[0]
@@ -143,19 +172,26 @@ def get_tiles(ra,dec):
     
     # Test actually within tiles, and capture shortest distance
     # to nearest edge
-    within_tiles = []
+    tiles = []
     for tileofs in nearby_tiles[0][0]:
         nearest_edge = _tile_contains_position(tileofs,ra,dec)
         if nearest_edge is not None:
-            idx = tr_atlas_indices[tileofs]
-            within_tiles.append((nearest_edge,get_epochs_by_idx(idx)))
+            coadd_id,_,_ = tr_cutout_coords.iloc[tileofs,:]
+            tiles.append((nearest_edge,coadd_id))
+            #within_tiles.append((nearest_edge,get_epochs_by_idx(idx)))
 
     # Sort by furthest from an edge. This is a better metric than
     # distance to tile center, because it accurately expresses
     # how complete the cutout will be in the corners versus edges
-    return sorted(within_tiles,key=lambda x: x[0], reverse=True)
+    tiles = sorted(tiles,key=lambda x: x[0], reverse=True)
+    tiles = [x[1] for x in tiles] # drop "nearest" field
 
+    # Extract index rows by coadd_id
+    df = tr_index.loc[tiles,:]
 
+    return df
+
+"""
 def get_epochs_by_idx(idx):
     # Grab rows until hitting the next coadd_id or
     # end of the atlas
@@ -167,23 +203,34 @@ def get_epochs_by_idx(idx):
             break
         last = coadd_id
     return tr_atlas_epochs[idx:i]
-
+"""
 
 def main():
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("ra",type=float)
     ap.add_argument("dec",type=float)
-    ap.add_argument("--atlas",default="tr_neo2_index.fits")
+    ap.add_argument("--atlas",default="tr_neo3_index_sorted.fits")
     args = ap.parse_args()
 
     __init(args.atlas)
 
-    for x,epochs in get_tiles(float(args.ra),float(args.dec)):
-        for e in epochs:
-            print e
-        print
+    epochs = get_tiles(float(args.ra),float(args.dec))
+    print epochs
 
+    # Testing
+    coadds = get_tiles(args.ra,args.dec)
+    print coadds
+    coadd = coadds.iloc[0,:]
+    print coadd
+    print coadd.name
+    coadd_id,epoch,band = coadd.name
+    z = coadds.loc[(coadd_id,slice(None),band),
+                   coadds["FORWARD"] == 0,:]
+    
+    print [x[1] for x in z.index]
+    print z["MJDMEAN"].values.astype(float)
+    print abs(z["MJDMEAN"] - 56645.42586916)
 
 if __name__ == "__main__": main()
-else: __init("tr_neo2_index.fits")
+else: __init("tr_neo3_index_sorted.fits")
