@@ -575,6 +575,7 @@ class Coadd_Strategy_Page(Resource):
                                      "window-2.0-year",
                                      "window-2.5-year",
                                      "window-3.0-year",
+                                     "pre-post",
                                      "parallax-enhancing",
                                      "shift-and-add"))
         parser.add_argument("pmra", type=float, required=False)
@@ -674,6 +675,23 @@ class Coadd_Strategy_Page(Resource):
                                    for x in window["MJDMEAN"]]}
                 if len(solutions) == 0 or sol != solutions[-1]:
                     solutions.append(sol)
+        elif args.coadd_mode == "pre-post":
+            mjdlim = 55609.8333333333
+
+            sub = coadds.loc[(coadd_id,slice(None),args.band),:]
+            
+            pre = sub[sub["MJDMEAN"] < mjdlim]
+            post = sub[sub["MJDMEAN"] >= mjdlim]
+
+            for s in (pre,post):
+                sol = {"tile":str(coadd_id),
+                       "band":int(args.band),
+                       "epochs":[int(x[1])
+                                 for x in s.index],
+                       "mjdmeans":[float(x)
+                                   for x in s["MJDMEAN"]]}
+                solutions.append(sol)
+
         elif args.coadd_mode == "shift-and-add":
             if args.pmra is None or args.pmdec is None:
                 return "Provide pmra and pmdec parameters to shift-and-add",500

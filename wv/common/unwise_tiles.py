@@ -210,7 +210,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("ra",type=float)
     ap.add_argument("dec",type=float)
-    ap.add_argument("--atlas",default="tr_neo3_index_sorted.fits")
+    ap.add_argument("--atlas",default="tr_neo4_index_sorted.fits")
     args = ap.parse_args()
 
     __init(args.atlas)
@@ -233,4 +233,4 @@ def main():
     print abs(z["MJDMEAN"] - 56645.42586916)
 
 if __name__ == "__main__": main()
-else: __init("tr_neo3_index_sorted.fits")
+else: __init("tr_neo4_index_sorted.fits")
