@@ -1,6 +1,8 @@
 # WiseView
 WiseView code for displaying [unWISE](http://unwise.me) image blinks
 
+[![ascl:1806.004](https://img.shields.io/badge/ascl-1806.004-blue.svg?colorB=262255)](http://ascl.net/1806.004)
+
 # Web Application
 http://byw.tools/wiseview
 
