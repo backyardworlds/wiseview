@@ -33,21 +33,7 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 
 # Citation
-Please cite WiseView if you found it useful to your research.
-
-@MISC{2018ascl.soft06004C,
-   author = {{Caselden}, D. and {Westin}, III, P. and {Meisner}, A. and {Kuchner}, M. and 
-	{Colin}, G.},
-    title = "{WiseView: Visualizing motion and variability of faint WISE sources}",
- keywords = {Software },
-howpublished = {Astrophysics Source Code Library},
-     year = 2018,
-    month = jun,
-archivePrefix = "ascl",
-   eprint = {1806.004},
-   adsurl = {http://adsabs.harvard.edu/abs/2018ascl.soft06004C},
-  adsnote = {Provided by the SAO/NASA Astrophysics Data System}
-}
+Please cite WiseView if you found it useful to your research. A Bibtex entry for WiseView can be obtained from [NASA ADS](http://adsabs.harvard.edu/abs/2018ascl.soft06004C)
 
 # Background
 
