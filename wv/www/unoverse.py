@@ -1,4 +1,4 @@
-import pickle
+import cPickle as pickle
 from StringIO import StringIO
 from tempfile import NamedTemporaryFile
 
@@ -215,26 +215,33 @@ def get_unwise_composite(ra,dec,size,band,version,mode,color,linear,trimbright):
     return StringIO(merge_imgs(rgb_images)), 200
 
 
-def request_tspot_cutout(ra,dec,size,band,epoch,tile):
+def request_tspot_cutout(ra,dec,size,band,epoch,tile,covmap=True):
     """Fetch cutouts from S3"""
     # Memoize cutouts
     key = "%d|%f|%f|%d|%d|True|True"%(epoch,ra,dec,band,size)
-    cache_im = uwsgi.cache_get("IM"+key)
+    cache_im = uwsgi.cache_get(key,"wvim")
     if cache_im is None:
         cutout = unwcutout.get_by_tile_epoch(tile,epoch,
                                              ra,dec,
                                              band,size=size,
-                                             fits=True,covmap=True)
-        uwsgi.cache_set("IM"+key,pickle.dumps(cutout[0],protocol=0))
-        uwsgi.cache_set("CM"+key,pickle.dumps(cutout[1],protocol=0))
+                                             fits=False,covmap=covmap,
+                                             cache=uwsgi)
+        if covmap:
+            uwsgi.cache_set(key,pickle.dumps(cutout[0],protocol=0),0,"wvim")
+            uwsgi.cache_set(key,pickle.dumps(cutout[1],protocol=0),0,"wvcm")
+        else:
+            uwsgi.cache_set(key,pickle.dumps(cutout,protocol=0),0,"wvim")
     else:
         cache_im = pickle.loads(cache_im)
-        cache_cm = pickle.loads(uwsgi.cache_get("CM"+key))
-        cutout = (cache_im,cache_cm)
+        if covmap:
+            cache_cm = pickle.loads(uwsgi.cache_get(key,"wvcm"))
+            cutout = (cache_im,cache_cm)
+        else:
+            cutout = cache_im
     return cutout
 
 
-def _build_cutout(ra,dec,size,band,epochs,px,py,tile):
+def _build_cutout(ra,dec,size,band,epochs,px,py,tile,covmap):
     ims = []
     cms = []
     projecting = False
@@ -250,32 +257,43 @@ def _build_cutout(ra,dec,size,band,epochs,px,py,tile):
             py_ = py[i]
             if py != 0: projecting = True
         else: py_ = 0
-        im,cm = request_tspot_cutout(ra,dec,size,band,e_,tile)
+
+        if covmap:
+            im,cm = request_tspot_cutout(ra,dec,size,band,e_,tile)
+        else:
+            im = request_tspot_cutout(ra,dec,size,band,e_,tile,covmap=False)
 
         # TODO: difference imaging
         # issue is the subselection of ims to create background
         # needs too much data to really pass in a GET
         if projecting:
             im = project_im(im,px_,py_)
-            cm = project_im(cm,px_,py_)
-        
-        ims.append(im)
-        cms.append(cm)
+            if covmap:
+                cm = project_im(cm,px_,py_)
 
-    return np.ma.average(ims,weights=cms,axis=0)
+        ims.append(im)
+
+        if covmap:
+            cm[cm <= 2] = 1
+            cms.append(cm)
+        
+    if covmap:
+        return np.ma.average(ims,weights=cms,axis=0)
+    else:
+        return np.average(ims,axis=0)
 
 
 def get_cutout(ra,dec,size,band,epochs,px,py,
-               tile,mode,color,linear,trimbright):
-    cutout = _build_cutout(ra,dec,size,band,epochs,px,py,tile)
+               tile,mode,color,linear,trimbright,covmap):
+    cutout = _build_cutout(ra,dec,size,band,epochs,px,py,tile,covmap)
     return StringIO(convert_img(cutout,color,mode,linear,
                                      trimbright)), 200
 
 
-def get_composite(ra,dec,size,epochs,px,py,tile,mode,color,linear,trimbright):
+def get_composite(ra,dec,size,epochs,px,py,tile,mode,color,linear,trimbright,covmap):
     """Fetch w1 and w2 images from tspot and build a w1+w2 composite"""
-    w1 = _build_cutout(ra,dec,size,1,epochs,px,py,tile)
-    w2 = _build_cutout(ra,dec,size,2,epochs,px,py,tile)
+    w1 = _build_cutout(ra,dec,size,1,epochs,px,py,tile,covmap)
+    w2 = _build_cutout(ra,dec,size,2,epochs,px,py,tile,covmap)
 
     # Normalize to w1
     w2 = w2 + (np.median(w1) - np.median(w2))
@@ -325,6 +343,7 @@ class Convert(Resource):
                             choices=["viridis","plasma","inferno","magma","Greys","Purples","Blues","Greens","Oranges","Reds","YlOrBr","YlOrRd","OrRd","PuRd","RdPu","BuPu","GnBu","PuBu","YlGnBu","PuBuGn","BuGn","YlGn","binary","gist_yarg","gist_gray","gray","bone","pink","spring","summer","autumn","winter","cool","Wistia","hot","afmhot","gist_heat","copper","PiYG","PRGn","BrBG","PuOr","RdGy","RdBu","RdYlBu","RdYlGn","Spectral","coolwarm","bwr","seismic","Pastel1","Pastel2","Paired","Accent","Dark2","Set1","Set2","Set3","tab10","tab20","tab20b","tab20c","flag","prism","ocean","gist_earth","terrain","gist_stern","gnuplot","gnuplot2","CMRmap","cubehelix","brg","hsv","gist_rainbow","rainbow","jet","nipy_spectral","gist_ncar"])
         parser.add_argument("linear",type=float,default=0.2)
         parser.add_argument("trimbright",type=float,default=99.2)
+        parser.add_argument("covmap", type=int, choices=(0,1), default=0)
         args = parser.parse_args()
 
         if args.linear <= 0.0: args.linear = 0.0000000001
@@ -339,13 +358,15 @@ class Convert(Resource):
                                             args.epochs,args.px,args.py,
                                             args.tile,
                                             args.mode,args.color,args.linear,
-                                            args.trimbright)
+                                            args.trimbright,
+                                            args.covmap)
             elif args.band == 3:
                 cutout, status = get_composite(args.ra,args.dec,args.size,
                                                args.epochs,args.px,args.py,
                                                args.tile,
                                                args.mode,args.color,args.linear,
-                                               args.trimbright)
+                                               args.trimbright,
+                                               args.covmap)
         else:
             if args.band in (1,2):
                 cutout, status = get_unwise_cutout(args.ra,args.dec,args.size,
@@ -356,7 +377,8 @@ class Convert(Resource):
                 cutout, status = get_unwise_composite(args.ra,args.dec,args.size,
                                                       args.band,args.version,
                                                       args.mode,args.color,
-                                                      args.linear,args.trimbright)                
+                                                      args.linear,args.trimbright)
+            
         
         if status != 200:
             return "Request failed", 500

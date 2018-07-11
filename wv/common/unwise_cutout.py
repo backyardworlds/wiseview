@@ -1,3 +1,4 @@
+import cPickle as pickle
 import cStringIO as StringIO
 import numpy as np
 import wv.common.unwise_tiles as ut
@@ -5,6 +6,14 @@ import wv.common.touchspot as tspot
 import astropy.io.fits as aif
 import astropy.wcs as awcs
 import gzip
+
+try:
+    import uwsgi
+except ImportError:
+    # Dan doesn't really know why UWSGI starts twice, but he's hoping that the first ime
+    # is just.... i dunno... loading a master or something?
+    # Then the rest does the real work?
+    pass
 
 path = "unwise/data/timeresolved"
 
@@ -30,12 +39,8 @@ def cutout(fitsfileobj,ra,dec,size,fits=False,scamp=None,
                        max(left,0):min(int(px)+int(size/2)+1,2048)]
 
     # Convert to fits
-    if fits and scamp is not None:
-        # Use SCAMP headers to find px,py of RA, Dec
-        wcs = awcs.WCS(scamp)
-        px,py = wcs.wcs_world2pix(np.array([[ra,dec]]),0)[0]
-        
-        cutf = aif.PrimaryHDU(cut,header=scamp)
+    if fits:
+        cutf = aif.PrimaryHDU(cut,header=hdul[0].header)
         cutf.header["NAXIS1"] = cut.shape[1] # X, RA
         cutf.header["NAXIS2"] = cut.shape[0] # Y, Dec
         cpx = min(px,int(size/2)
@@ -48,6 +53,12 @@ def cutout(fitsfileobj,ra,dec,size,fits=False,scamp=None,
         cutf.header["CRPIX2"] = cpy+1 # Fits counts px starting at 1
         cutf.header["CRVAL1"] = ra
         cutf.header["CRVAL2"] = dec
+        
+        if scamp is not None:
+            raise Exception("IMPLEMENT ME")
+            # Use SCAMP headers to find px,py of RA, Dec
+            wcs = awcs.WCS(scamp)
+            px,py = wcs.wcs_world2pix(np.array([[ra,dec]]),0)[0]
 
         sio = StringIO.StringIO()
         cutf.writeto(sio)
@@ -58,7 +69,7 @@ def cutout(fitsfileobj,ra,dec,size,fits=False,scamp=None,
 
 
 def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
-                      scamp=None,covmap=False):
+                      scamp=None,covmap=False,cache=None):
     """
     Download cutouts or full tiles given
 
@@ -81,9 +92,26 @@ def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
     wcs = ut.tr_cutout_solutions[ut.tr_coadd_to_index[coadd_id]]
     
     # Get content from S3
-    sio = StringIO.StringIO()
-    tspot.bucket.download_fileobj(path_,sio)
-    sio.seek(0)
+    if cache is not None:
+        #print "Trying",path_,type(path_),len(path_),
+        sio = uwsgi.cache_get(path_,"wvtiles")
+        if sio is None:
+            #print "Cache mss",path_,
+            sio = StringIO.StringIO()
+            tspot.bucket.download_fileobj(path_,sio)
+            sio.seek(0)
+            val = pickle.dumps(sio.getvalue())
+            #print type(val),len(val),"SETTING",
+            res = uwsgi.cache_set(path_,val,0,"wvtiles")
+            #print "GOT",res
+        else:
+            #print "HIT TILE"
+            #print "cache hit",path_
+            sio = pickle.loads(sio)
+    else:
+        sio = StringIO.StringIO()
+        tspot.bucket.download_fileobj(path_,sio)
+        sio.seek(0)
 
     # Perform cutouts if size is specified
     if size is not None:
