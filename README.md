@@ -6,7 +6,7 @@ WiseView code for displaying [unWISE](http://unwise.me) image blinks
 # Web Application
 http://byw.tools/wiseview
 
-[example image blink](http://byw.tools/wiseview#ra=133.795140&dec=-7.245150&size=120&band=2&speed=274&trimbright=521.66&linear=1&color=gray&mode=fixed&coadd_mode=time-resolved&zoom=12)
+[example image blink](http://byw.tools/wiseview#ra=133.787&dec=-7.245150&size=120&band=2&speed=274&trimbright=521.66&linear=1&color=gray&mode=fixed&coadd_mode=time-resolved&zoom=12)
 
 # License
 This is free and unencumbered software released into the public domain.
@@ -33,7 +33,7 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 
 # Citation
-Please cite WiseView if you found it useful to your research
+Please cite WiseView if you found it useful to your research. A Bibtex entry for WiseView can be obtained from [NASA ADS](http://adsabs.harvard.edu/abs/2018ascl.soft06004C).
 
 # Background
 
