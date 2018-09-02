@@ -22,10 +22,12 @@ import requests
 
 # Image processing
 import numpy as np
+import scipy.misc as spm
 import astropy.io.fits as aif
 import skimage.exposure as skie
 import skimage.util.dtype as skid
 from PIL import Image,ImageOps
+import imageio
 import astropy.visualization as av
 import matplotlib.pyplot as plt
 
@@ -57,16 +59,10 @@ def convert_img(file_data,color,mode,linear,trimbright):
     sim = imp.complex(img,mode,linear,trimbright)
     #sim = skie.rescale_intensity(img,out_range=(0,1))
     opt_img = skid.img_as_ubyte(sim)
-    sio = StringIO()
     
     im = ImageOps.invert(Image.fromarray(opt_img)).transpose(Image.FLIP_TOP_BOTTOM)
 
-    if color is not None:
-        plt.imsave(sio,im,format="png",cmap=color)
-    else:
-        im.save(sio,format="png")
-
-    return sio.getvalue()
+    return im
 
 
 def merge_imgs(file_datas, suffix=".png"):
@@ -286,8 +282,7 @@ def _build_cutout(ra,dec,size,band,epochs,px,py,tile,covmap):
 def get_cutout(ra,dec,size,band,epochs,px,py,
                tile,mode,color,linear,trimbright,covmap):
     cutout = _build_cutout(ra,dec,size,band,epochs,px,py,tile,covmap)
-    return StringIO(convert_img(cutout,color,mode,linear,
-                                     trimbright)), 200
+    return convert_img(cutout,color,mode,linear,trimbright),200
 
 
 def get_composite(ra,dec,size,epochs,px,py,tile,mode,color,linear,trimbright,covmap):
@@ -346,44 +341,78 @@ class Convert(Resource):
         parser.add_argument("covmap", type=int, choices=(0,1), default=0)
         args = parser.parse_args()
 
-        if args.linear <= 0.0: args.linear = 0.0000000001
-        elif args.linear > 1.0: args.linear = 1.0
-
-        if args.trimbright <= 0.0: args.trimbright = 0.0000000001
-        elif args.mode == "percent" and args.trimbright > 100.0: args.trimbright = 100.0
-
-        if args.version is None:
-            if args.band in (1,2):
-                cutout, status = get_cutout(args.ra,args.dec,args.size,args.band,
-                                            args.epochs,args.px,args.py,
-                                            args.tile,
-                                            args.mode,args.color,args.linear,
-                                            args.trimbright,
-                                            args.covmap)
-            elif args.band == 3:
-                cutout, status = get_composite(args.ra,args.dec,args.size,
-                                               args.epochs,args.px,args.py,
-                                               args.tile,
-                                               args.mode,args.color,args.linear,
-                                               args.trimbright,
-                                               args.covmap)
-        else:
-            if args.band in (1,2):
-                cutout, status = get_unwise_cutout(args.ra,args.dec,args.size,
-                                                   args.band,args.version,
-                                                   args.mode,args.color,
-                                                   args.linear,args.trimbright)
-            elif args.band == 3:
-                cutout, status = get_unwise_composite(args.ra,args.dec,args.size,
-                                                      args.band,args.version,
-                                                      args.mode,args.color,
-                                                      args.linear,args.trimbright)
-            
+        cutout, status_code = self.convert(args.ra,args.dec,args.size,args.band,args.version,args.epochs,args.px,args.py,args.tile,args.mode,args.color,args.linear,args.trimbright,args.covmap,raw=False)
         
+        if status_code != 200:
+            return cutout, status_code
+        
+        return send_file(cutout, mimetype="image/png")
+
+    
+    @staticmethod
+    def convert(ra,dec,size,band,version,epochs,px,py,tile,mode,color,linear,trimbright,covmap,raw=False):
+
+        if linear <= 0.0: linear = 0.0000000001
+        elif linear > 1.0: linear = 1.0
+
+        if trimbright <= 0.0: trimbright = 0.0000000001
+        elif mode == "percent" and trimbright > 100.0: trimbright = 100.0
+
+        if version is None:
+            if band in (1,2):
+                cutout, status = get_cutout(ra,dec,size,band,
+                                            epochs,px,py,
+                                            tile,
+                                            mode,color,linear,
+                                            trimbright,
+                                            covmap)
+                
+                if status != 200: return "Request failed.",500
+                
+                if raw: return cutout
+                
+                sio = StringIO()
+                if color is not None:
+                    plt.imsave(sio,im,format="png",cmap=color)
+                else:
+                    im.save(sio,format="png")
+                return sio, status_code
+            
+            elif band == 3:
+                cutout, status = get_composite(ra,dec,size,
+                                               epochs,px,py,
+                                               tile,
+                                               mode,color,linear,
+                                               trimbright,
+                                               covmap)
+                
+                if status != 200: return "Request failed.",500
+                
+                if raw: return cutout
+
+                sio = StringIO()
+                im.save(sio,format="png")
+                return sio, status_code
+            
+        else:
+            # Raw & legacy unWISE unsupported
+            if raw: raise Exception("Raw and legacy unWISE unsupported")
+            
+            if band in (1,2):
+                cutout, status = get_unwise_cutout(ra,dec,size,
+                                                   band,version,
+                                                   mode,color,
+                                                   linear,trimbright)
+            elif band == 3:
+                cutout, status = get_unwise_composite(ra,dec,size,
+                                                      band,version,
+                                                      mode,color,
+                                                      linear,trimbright)
+
         if status != 200:
             return "Request failed", 500
 
-        return send_file(cutout, mimetype="image/png")
+        return cutout, status_code
 
 
 api.add_resource(Convert, "/convert")
@@ -604,13 +633,22 @@ class Coadd_Strategy_Page(Resource):
         parser.add_argument("pmdec", type=float, required=False)
         args = parser.parse_args()
 
+        try:
+            solutions = self.coadd_strategy(args.ra,args.dec,args.band,args.coadd_mode,args.pmra,args.dec)
+        except Exception,e:
+            return e.message,500
+            
+        return jsonify({"solutions":solutions})
+
+    @staticmethod
+    def coadd_strategy(ra,dec,band,coadd_mode,pmra=None,pmdec=None):
         solutions = []            
             
         # Get coadd ids, pick just one tile
-        coadds = unwtiles.get_tiles(args.ra,args.dec)
+        coadds = unwtiles.get_tiles(ra,dec)
         # First coadd_id =
         if coadds.shape[0] == 0:
-            return jsonify({"solutions":solutions})
+            return solutions
             
         coadd_id,_,_ = coadds.iloc[0,:].name
         # All coadds for this coadd_id
@@ -636,29 +674,29 @@ class Coadd_Strategy_Page(Resource):
                               coadds["FORWARD"] == fwd,:]
 
         
-        if args.coadd_mode == "time-resolved":
+        if coadd_mode == "time-resolved":
             # All epochs
             for _,coadd in coadds.iterrows():
-                coadd_id,epoch,band = coadd.name
-                if band != args.band: continue
+                coadd_id,epoch,band_ = coadd.name
+                if band_ != band: continue
                 solutions.append({"tile":str(coadd_id),
-                                  "band":int(band),
+                                  "band":int(band_),
                                   "epochs":[int(epoch)],
                                   "mjdmeans":[float(coadd["MJDMEAN"])],
                 })
-        elif args.coadd_mode == "parallax-cancelling-forward":
+        elif coadd_mode == "parallax-cancelling-forward":
             # Only forward
-            solutions.extend(dictit(fwd(coadds,coadd_id,args.band,1)))
-        elif args.coadd_mode == "parallax-cancelling-backward":
+            solutions.extend(dictit(fwd(coadds,coadd_id,band,1)))
+        elif coadd_mode == "parallax-cancelling-backward":
             # Only backward
-            solutions.extend(dictit(fwd(coadds,coadd_id,args.band,0)))
-        elif args.coadd_mode == "parallax-enhancing":
+            solutions.extend(dictit(fwd(coadds,coadd_id,band,0)))
+        elif coadd_mode == "parallax-enhancing":
             # All FORWARD vs all BACKWARD
-            forward = fwd(coadds,coadd_id,args.band,1)
-            backward = fwd(coadds,coadd_id,args.band,0)
+            forward = fwd(coadds,coadd_id,band,1)
+            backward = fwd(coadds,coadd_id,band,0)
                     
             solutions.append({"tile":str(coadd_id),
-                              "band":int(args.band),
+                              "band":int(band),
                               "epochs":[int(x[1])
                                         for x in forward.index],
                               "mjdmeans":[float(x)
@@ -666,14 +704,14 @@ class Coadd_Strategy_Page(Resource):
             })
 
             solutions.append({"tile":str(coadd_id),
-                              "band":int(args.band),
+                              "band":int(band),
                               "epochs":[int(x[1])
                                         for x in backward.index],
                               "mjdmeans":[float(x)
                                           for x in backward["MJDMEAN"]],
             })
             
-        elif args.coadd_mode.startswith("window-"):
+        elif coadd_mode.startswith("window-"):
             time_bases = {"window-0.5-year":274.5,
                           "window-1.0-year":457.5,
                           "window-1.5-year":640.5,
@@ -681,51 +719,51 @@ class Coadd_Strategy_Page(Resource):
                           "window-2.5-year":1006.5,
                           "window-3.0-year":1189.5}
             
-            if args.coadd_mode not in time_bases:
-                return "%s invalid coadd_mode"%args.coadd_mode,500
+            if coadd_mode not in time_bases:
+                raise Exception("%s invalid coadd_mode"%coadd_mode)
 
-            time_basis = time_bases[args.coadd_mode]
-            sub = coadds.loc[(coadd_id,slice(None),args.band),:]
+            time_basis = time_bases[coadd_mode]
+            sub = coadds.loc[(coadd_id,slice(None),band),:]
             for _,coadd in sub.iterrows():
                 # Build window
                 window = sub[abs(sub["MJDMEAN"] - coadd["MJDMEAN"]) <= time_basis]
                 sol = {"tile":str(coadd_id),
-                       "band":int(args.band),
+                       "band":int(band),
                        "epochs":[int(x[1])
                                  for x in window.index],
                        "mjdmeans":[float(x)
                                    for x in window["MJDMEAN"]]}
                 if len(solutions) == 0 or sol != solutions[-1]:
                     solutions.append(sol)
-        elif args.coadd_mode == "pre-post":
+        elif coadd_mode == "pre-post":
             mjdlim = 55609.8333333333
 
-            sub = coadds.loc[(coadd_id,slice(None),args.band),:]
+            sub = coadds.loc[(coadd_id,slice(None),band),:]
             
             pre = sub[sub["MJDMEAN"] < mjdlim]
             post = sub[sub["MJDMEAN"] >= mjdlim]
 
             for s in (pre,post):
                 sol = {"tile":str(coadd_id),
-                       "band":int(args.band),
+                       "band":int(band),
                        "epochs":[int(x[1])
                                  for x in s.index],
                        "mjdmeans":[float(x)
                                    for x in s["MJDMEAN"]]}
                 solutions.append(sol)
 
-        elif args.coadd_mode == "shift-and-add":
-            if args.pmra is None or args.pmdec is None:
-                return "Provide pmra and pmdec parameters to shift-and-add",500
+        elif coadd_mode == "shift-and-add":
+            if pmra is None or pmdec is None:
+                raise Exception("Provide pmra and pmdec parameters to shift-and-add")
 
-            coadds = coadds.loc[(coadd_id,slice(None),args.band),:].copy()
+            coadds = coadds.loc[(coadd_id,slice(None),band),:].copy()
             c = coadds.loc[np.abs(coadds["MJDMEAN"].mean()-coadds["MJDMEAN"]).argmin()]
 
-            coadds["PX"] = (-(((c["MJDMEAN"]-coadds["MJDMEAN"])/365)*(args.pmra/1000.))/2.75).round().astype(int)
-            coadds["PY"] = ((((c["MJDMEAN"]-coadds["MJDMEAN"])/365)*(args.pmdec/1000.))/2.75).round().astype(int)
+            coadds["PX"] = (-(((c["MJDMEAN"]-coadds["MJDMEAN"])/365)*(pmra/1000.))/2.75).round().astype(int)
+            coadds["PY"] = ((((c["MJDMEAN"]-coadds["MJDMEAN"])/365)*(pmdec/1000.))/2.75).round().astype(int)
 
             sol = {"tile":str(coadd_id),
-                   "band":int(args.band),
+                   "band":int(band),
                    "epochs":[int(x[1])
                              for x in coadds.index],
                    "mjdmeans":[float(x)
@@ -735,10 +773,75 @@ class Coadd_Strategy_Page(Resource):
 
             solutions = [sol]
 
-        return jsonify({"solutions":solutions})
+        return solutions
         
         
 api.add_resource(Coadd_Strategy_Page, "/coadd_strategy")
+
+
+class Gif_Page(Resource):
+    def get(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument("ra", type=float, required=True)
+        parser.add_argument("dec", type=float, required=True)
+        parser.add_argument("band", type=int, required=True,
+                            choices=[1,2])
+        parser.add_argument("coadd_mode", type=str, required=True,
+                            choices=("time-resolved",
+                                     "parallax-cancelling-forward",
+                                     "parallax-cancelling-backward",
+                                     "window-0.5-year",
+                                     "window-1.0-year",
+                                     "window-1.5-year",
+                                     "window-2.0-year",
+                                     "window-2.5-year",
+                                     "window-3.0-year",
+                                     "pre-post",
+                                     "parallax-enhancing"))
+        parser.add_argument("size", type=int, default=120)
+        parser.add_argument("mode", type=str, default="adapt",
+                            choices=["adapt","percent","fixed"])
+        parser.add_argument("color", type=str, default="Greys",
+                            choices=["viridis","plasma","inferno","magma","Greys","Purples","Blues","Greens","Oranges","Reds","YlOrBr","YlOrRd","OrRd","PuRd","RdPu","BuPu","GnBu","PuBu","YlGnBu","PuBuGn","BuGn","YlGn","binary","gist_yarg","gist_gray","gray","bone","pink","spring","summer","autumn","winter","cool","Wistia","hot","afmhot","gist_heat","copper","PiYG","PRGn","BrBG","PuOr","RdGy","RdBu","RdYlBu","RdYlGn","Spectral","coolwarm","bwr","seismic","Pastel1","Pastel2","Paired","Accent","Dark2","Set1","Set2","Set3","tab10","tab20","tab20b","tab20c","flag","prism","ocean","gist_earth","terrain","gist_stern","gnuplot","gnuplot2","CMRmap","cubehelix","brg","hsv","gist_rainbow","rainbow","jet","nipy_spectral","gist_ncar"])
+        parser.add_argument("linear",type=float,default=0.2)
+        parser.add_argument("trimbright",type=float,default=99.2)
+        parser.add_argument("duration",type=float,default=0.25)
+        parser.add_argument("zoom",type=float,default=9.0)
+        args = parser.parse_args()
+
+        solutions = Coadd_Strategy_Page.coadd_strategy(args.ra,args.dec,args.band,args.coadd_mode)
+
+        ims = []
+        first = True
+        for sol in solutions:
+            # Relying on it being sorted by epoch
+            cutout = Convert.convert(args.ra,args.dec,(args.size/2.75)+1,args.band,None,sol["epochs"],[],[],
+                                     sol["tile"],args.mode,args.color,args.linear,args.trimbright,0,raw=True)
+            #sio = StringIO(cutout)
+            #sio.seek(0)
+            #ims.append(sio)
+            
+            cutout = np.array(cutout)
+            # Resize
+            cutout = spm.imresize(cutout,args.zoom,interp="nearest")
+
+            if first:
+                cutout = np.pad(cutout,max(int(args.zoom),1),mode="constant",constant_values=cutout.min())
+                first = False
+            else:
+                cutout = np.pad(cutout,max(int(args.zoom),1),mode="constant",constant_values=cutout.max())
+            
+            ims.append(cutout)
+
+        gif = StringIO()
+        imageio.mimwrite(gif,ims,format="GIF-PIL",loop=0,duration=args.duration)
+        gif.seek(0)
+
+        return send_file(gif, mimetype="image/gif")        
+        
+
+api.add_resource(Gif_Page, "/gif")
+        
 
 
 if __name__ == "__main__":
