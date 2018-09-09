@@ -145,8 +145,11 @@ def get_unwise_cutout(ra,dec,size,band,version,mode,color,linear,trimbright):
     converted = []
     for offset, cutout in enumerate(cutouts):
         pad = offset != (len(cutouts) - 1)
-        converted.append(convert_img(cutout, color, mode, linear,
-                                     trimbright))
+        im = convert_img(cutout, color, mode, linear,
+                         trimbright)
+        sio = StringIO()
+        im.save(sio,format="png")
+        converted.append(sio.getvalue())
 
     image = merge_imgs(converted)
 
@@ -313,11 +316,9 @@ def get_composite(ra,dec,size,epochs,px,py,tile,mode,color,linear,trimbright,cov
     arr[..., 2] = w2
     #im = ImageOps.invert(Image.fromarray(arr)).transpose(Image.FLIP_TOP_BOTTOM)
     im = Image.fromarray(arr).transpose(Image.FLIP_TOP_BOTTOM)
-    im.save(sio,format="png")
-    sio.seek(0)
 
     # Merge images
-    return sio, 200
+    return im, 200
 
 
 class Convert(Resource):
@@ -373,10 +374,11 @@ class Convert(Resource):
                 
                 sio = StringIO()
                 if color is not None:
-                    plt.imsave(sio,im,format="png",cmap=color)
+                    plt.imsave(sio,cutout,format="png",cmap=color)
                 else:
-                    im.save(sio,format="png")
-                return sio, status_code
+                    cutout.save(sio,format="png")
+                sio.seek(0)
+                return sio, status
             
             elif band == 3:
                 cutout, status = get_composite(ra,dec,size,
@@ -391,8 +393,9 @@ class Convert(Resource):
                 if raw: return cutout
 
                 sio = StringIO()
-                im.save(sio,format="png")
-                return sio, status_code
+                cutout.save(sio,format="png")
+                sio.seek(0)
+                return sio, status
             
         else:
             # Raw & legacy unWISE unsupported
@@ -412,7 +415,7 @@ class Convert(Resource):
         if status != 200:
             return "Request failed", 500
 
-        return cutout, status_code
+        return cutout, status
 
 
 api.add_resource(Convert, "/convert")
