@@ -142,6 +142,7 @@
                 this.canvas = jQuery("#daCanvas");
                 this.pmra_input = jQuery("#pmraInput");
                 this.pmdec_input = jQuery("#pmdecInput");
+                this.border_input = jQuery("#borderInput");
                 this.context = this.canvas.get(0).getContext("2d");
 
 	        this.versions = [];
@@ -170,6 +171,7 @@
 	                mode: this.mode_input.val(),
 	                coadd_mode: this.coadd_mode_input.val(),
                         zoom: this.zoom_input.val(),
+                        border: this.border_input.prop("checked") ? 1 : 0,
                     });
                 };
 
@@ -249,6 +251,7 @@
                     this.trimbright_input.val(map.trimbright || 99.2);
                     this.pmra_input.val(map.pmra || 0);
                     this.pmdec_input.val(map.pmdec || 0);
+                    this.border_input.prop("checked", (map.border || 1) == 1);
                     this.zoom_input.val(map.zoom || 10);
 
                     this.restart();
@@ -276,6 +279,13 @@
                         this.cur_img = (this.cur_img + 1) % this.images.length;
                     }
                     this.ver_output.text(this.versions[this.cur_img]);
+                    if (!this.border_input.prop("checked")) {
+                        this.canvas.css("border","");
+                    } else if (this.cur_img == 0) {
+                        this.canvas.css("border","5px dashed #FFFFFF");
+                    } else {
+                        this.canvas.css("border","5px dashed #000000");
+                    }
                 };
 
                 this.draw = function () {
@@ -639,6 +649,12 @@
 		<option value="parallax-enhancing">parallax-enhancing</option>
 		<option value="shift-and-add">shift-and-add</option>
 	      </select>
+            </div>
+          </div>
+	  <div class="row">
+            <div>
+              <label for="borderInput" style="display: inline;">Border Epoch 0</label>
+	      <input type="checkbox" class="resetters" id="borderInput" checked>
             </div>
           </div>
 	</div>
