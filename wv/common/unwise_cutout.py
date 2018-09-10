@@ -37,7 +37,7 @@ def cutout(fitsfileobj,ra,dec,size,fits=False,scamp=None,
     # Perform cutout
     cut = hdul[0].data[max(bot,0):min(int(py)+int(size/2)+1,2048),
                        max(left,0):min(int(px)+int(size/2)+1,2048)]
-
+    
     # Convert to fits
     if fits:
         cutf = aif.PrimaryHDU(cut,header=hdul[0].header)
@@ -64,7 +64,7 @@ def cutout(fitsfileobj,ra,dec,size,fits=False,scamp=None,
         cutf.writeto(sio)
         sio.seek(0)
         return sio.getvalue()
-        
+
     return cut
 
 
@@ -90,61 +90,17 @@ def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
 
     # Fetch pre-built WCS solution
     wcs = ut.tr_cutout_solutions[ut.tr_coadd_to_index[coadd_id]]
-    
+
     # Get content from S3
-    if cache is not None:
-        #print "Trying",path_,type(path_),len(path_),
-        sio = uwsgi.cache_get(path_,"wvtiles")
-        if sio is None:
-            #print "Cache mss",path_,
-            sio = StringIO.StringIO()
-            tspot.bucket.download_fileobj(path_,sio)
-            sio.seek(0)
-            val = pickle.dumps(sio.getvalue())
-            #print type(val),len(val),"SETTING",
-            res = uwsgi.cache_set(path_,val,0,"wvtiles")
-            #print "GOT",res
-        else:
-            #print "HIT TILE"
-            #print "cache hit",path_
-            sio = pickle.loads(sio)
-    else:
-        sio = StringIO.StringIO()
-        tspot.bucket.download_fileobj(path_,sio)
-        sio.seek(0)
+    sio = StringIO.StringIO()
+    tspot.bucket.download_fileobj(path_,sio)
+    sio.seek(0)
 
     # Perform cutouts if size is specified
     if size is not None:
         im = cutout(sio,ra,dec,size,fits=fits,scamp=scamp,wcs=wcs)
     else:
         im = sio.getvalue()
-    
-    # If returning covmap, repeat process for covmap
-    if covmap:
-        # Build coverage map path
-        path_ = "/".join(
-        (path,
-         "e%03d"%int(epoch_num), # epoch in e### form
-         coadd_id[:3], # first 3 digits of RA
-         coadd_id, # the tile name itself
-         "unwise-%s-w%d-n-m.fits.gz"%(coadd_id,band)))
-
-        # Get content from S3
-        sio = StringIO.StringIO()
-        tspot.bucket.download_fileobj(path_,sio)
-        sio.seek(0)
-
-        gz = gzip.GzipFile(fileobj=sio,mode="rb").read()
-
-        # Perform cutouts if size is specified
-        if size is not None:
-            sio = StringIO.StringIO(gz)
-            sio.seek(0)
-            cm = cutout(sio,ra,dec,size,fits=fits,scamp=scamp,wcs=wcs)
-        else:
-            cm = gz
-
-        return im,cm
     
     return im
 

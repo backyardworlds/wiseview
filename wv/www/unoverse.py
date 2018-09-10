@@ -1,5 +1,5 @@
 import cPickle as pickle
-from StringIO import StringIO
+from cStringIO import StringIO
 from tempfile import NamedTemporaryFile
 
 import csv
@@ -7,6 +7,7 @@ import tarfile
 import urllib
 import subprocess
 import json
+import random
 
 from flask import Flask
 from flask import make_response
@@ -100,17 +101,6 @@ def find_tar_fits(tar_data):
             cutout = targz.extractfile(member)
             fits_files.append(cutout)  
     return fits_files
-
-
-def add_arrs(arrs):
-    ims,cms = [],[]
-    for im,cm in arrs:
-        ims.append(im)
-        # Set to 0 if <= 2
-        cm[cm <= 2] = 0
-        cms.append(cm)
-
-    return np.ma.average(ims,weights=cms,axis=0)
 
 
 def request_unwise_cutouts(ra, dec, size, band, version):
@@ -217,7 +207,7 @@ def get_unwise_composite(ra,dec,size,band,version,mode,color,linear,trimbright):
     return StringIO(merge_imgs(rgb_images)), 200
 
 
-def request_tspot_cutout(ra,dec,size,band,epoch,tile,covmap=True):
+def request_tspot_cutout(ra,dec,size,band,epoch,tile):
     """Fetch cutouts from S3"""
     # Memoize cutouts
     key = "%d|%f|%f|%d|%d|True|True"%(epoch,ra,dec,band,size)
@@ -226,52 +216,33 @@ def request_tspot_cutout(ra,dec,size,band,epoch,tile,covmap=True):
         cutout = unwcutout.get_by_tile_epoch(tile,epoch,
                                              ra,dec,
                                              band,size=size,
-                                             fits=False,covmap=covmap,
-                                             cache=uwsgi)
-        if covmap:
-            uwsgi.cache_set(key,pickle.dumps(cutout[0],protocol=0),0,"wvim")
-            uwsgi.cache_set(key,pickle.dumps(cutout[1],protocol=0),0,"wvcm")
-        else:
-            uwsgi.cache_set(key,pickle.dumps(cutout,protocol=0),0,"wvim")
+                                             fits=False)
+        uwsgi.cache_set(key,pickle.dumps(cutout,protocol=0),0,"wvim")
     else:
-        cache_im = pickle.loads(cache_im)
-        if covmap:
-            cache_cm = pickle.loads(uwsgi.cache_get(key,"wvcm"))
-            cutout = (cache_im,cache_cm)
-        else:
-            cutout = cache_im
+        cutout = pickle.loads(cache_im)
     return cutout
 
 
-def _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile,covmap):
+def _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile):
     ims = []
-    cms = []
-    projecting = False
-    for i in xrange(len(epochs)):
+    for i in random.sample(range(len(epochs)),len(epochs)):
         e_ = epochs[i]
         
-        if px is not None and i < len(px):
-            px_ = px[i]
-            if px != 0: projecting = True
-        else: px_ = 0
-        
-        if py is not None and i < len(py):
-            py_ = py[i]
-            if py != 0: projecting = True
-        else: py_ = 0
-
-        if covmap:
-            im,cm = request_tspot_cutout(ra,dec,size,band,e_,tile)
-        else:
-            im = request_tspot_cutout(ra,dec,size,band,e_,tile,covmap=False)
+        im = request_tspot_cutout(ra,dec,size,band,e_,tile)
 
         # TODO: difference imaging
         # issue is the subselection of ims to create background
         # needs too much data to really pass in a GET
-        if projecting:
+        if px is not None and i < len(px):
+            px_ = px[i]
+        else: px_ = 0
+        
+        if py is not None and i < len(py):
+            py_ = py[i]
+        else: py_ = 0
+
+        if px != 0 or py != 0:
             im = project_im(im,px_,py_)
-            if covmap:
-                cm = project_im(cm,px_,py_)
 
         if mods is not None and i < len(mods):
             if "d" in mods:
@@ -283,28 +254,19 @@ def _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile,covmap):
             
         ims.append(im)
 
-        if covmap:
-            cm[cm <= 2] = 1
-            cms.append(cm)
-        
-    if covmap:
-        return np.ma.average(ims,weights=cms,axis=0)
-    else:
-        im = np.average(ims,axis=0)
-        print im
-        return im
+    return np.average(ims,axis=0)
 
 
 def get_cutout(ra,dec,size,band,epochs,px,py,mods,
-               tile,mode,color,linear,trimbright,covmap):
-    cutout = _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile,covmap)
+               tile,mode,color,linear,trimbright):
+    cutout = _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile)
     return convert_img(cutout,color,mode,linear,trimbright),200
 
 
-def get_composite(ra,dec,size,epochs,px,py,mods,tile,mode,color,linear,trimbright,covmap):
+def get_composite(ra,dec,size,epochs,px,py,mods,tile,mode,color,linear,trimbright):
     """Fetch w1 and w2 images from tspot and build a w1+w2 composite"""
-    w1 = _build_cutout(ra,dec,size,1,epochs,px,py,mods,tile,covmap)
-    w2 = _build_cutout(ra,dec,size,2,epochs,px,py,mods,tile,covmap)
+    w1 = _build_cutout(ra,dec,size,1,epochs,px,py,mods,tile)
+    w2 = _build_cutout(ra,dec,size,2,epochs,px,py,mods,tile)
 
     # Normalize to w1
     w2 = w2 + (np.median(w1) - np.median(w2))
@@ -353,10 +315,9 @@ class Convert(Resource):
                             choices=["viridis","plasma","inferno","magma","Greys","Purples","Blues","Greens","Oranges","Reds","YlOrBr","YlOrRd","OrRd","PuRd","RdPu","BuPu","GnBu","PuBu","YlGnBu","PuBuGn","BuGn","YlGn","binary","gist_yarg","gist_gray","gray","bone","pink","spring","summer","autumn","winter","cool","Wistia","hot","afmhot","gist_heat","copper","PiYG","PRGn","BrBG","PuOr","RdGy","RdBu","RdYlBu","RdYlGn","Spectral","coolwarm","bwr","seismic","Pastel1","Pastel2","Paired","Accent","Dark2","Set1","Set2","Set3","tab10","tab20","tab20b","tab20c","flag","prism","ocean","gist_earth","terrain","gist_stern","gnuplot","gnuplot2","CMRmap","cubehelix","brg","hsv","gist_rainbow","rainbow","jet","nipy_spectral","gist_ncar"])
         parser.add_argument("linear",type=float,default=0.2)
         parser.add_argument("trimbright",type=float,default=99.2)
-        parser.add_argument("covmap", type=int, choices=(0,1), default=0)
         args = parser.parse_args()
 
-        cutout, status_code = self.convert(args.ra,args.dec,args.size,args.band,args.version,args.epochs,args.px,args.py,args.mods,args.tile,args.mode,args.color,args.linear,args.trimbright,args.covmap,raw=False)
+        cutout, status_code = self.convert(args.ra,args.dec,args.size,args.band,args.version,args.epochs,args.px,args.py,args.mods,args.tile,args.mode,args.color,args.linear,args.trimbright,raw=False)
         
         if status_code != 200:
             return cutout, status_code
@@ -365,7 +326,7 @@ class Convert(Resource):
 
     
     @staticmethod
-    def convert(ra,dec,size,band,version,epochs,px,py,mods,tile,mode,color,linear,trimbright,covmap,raw=False):
+    def convert(ra,dec,size,band,version,epochs,px,py,mods,tile,mode,color,linear,trimbright,raw=False):
 
         if linear <= 0.0: linear = 0.0000000001
         elif linear > 1.0: linear = 1.0
@@ -379,8 +340,7 @@ class Convert(Resource):
                                             epochs,px,py,mods,
                                             tile,
                                             mode,color,linear,
-                                            trimbright,
-                                            covmap)
+                                            trimbright)
                 
                 if status != 200: return "Request failed.",500
                 
@@ -399,8 +359,7 @@ class Convert(Resource):
                                                epochs,px,py,mods,
                                                tile,
                                                mode,color,linear,
-                                               trimbright,
-                                               covmap)
+                                               trimbright)
                 
                 if status != 200: return "Request failed.",500
                 
