@@ -251,7 +251,7 @@
                     this.trimbright_input.val(map.trimbright || 99.2);
                     this.pmra_input.val(map.pmra || 0);
                     this.pmdec_input.val(map.pmdec || 0);
-                    this.border_input.prop("checked", (map.border || 1) == 1);
+                    this.border_input.prop("checked", (map.border || 0) == 1);
                     this.zoom_input.val(map.zoom || 10);
 
                     this.restart();
