@@ -7,7 +7,7 @@
                 padding: 0;
                 background-color: black;
                 color: white;
-	        height: 100vh;
+                height: 100vh;
             }
             canvas {
                 image-rendering: optimizeSpeed;            
@@ -17,42 +17,42 @@
                 image-rendering: pixelated;                
                 -ms-interpolation-mode: nearest-neighbor;  
             }
-	    a:link {
-	        color: white
-	    }
-	    a:visited {
+            a:link {
+                color: white
+            }
+            a:visited {
                 color: grey
-	    }
+            }
             hr { 
                 margin: 5px 0;
                 background-color: #777; 
                 height: 1px; 
                 border: 0; 
             }
-	    h1 {
-	        margin-top: 0px;
-	        margin-bottom: 0px;
-	        padding: 0px 10px;
-	        font-size: 18px;
-	    }
-	    p {
-	        font-size: 12px;
-	        padding: 0px 10px;
-	    }
+            h1 {
+                margin-top: 0px;
+                margin-bottom: 0px;
+                padding: 0px 10px;
+                font-size: 18px;
+            }
+            p {
+                font-size: 12px;
+                padding: 0px 10px;
+            }
             label {
                 display: block;
-	        font-size: 14px;
+                font-size: 14px;
             }
-	    input[type=range] {
-	    padding: 0px;
-	    margin-left: 5px;
-	    margin-top: 0px;
-	    margin-bottom: 0px;
-	    width:220px;
-	    }
-	    input {
-	    margin: 0px 5px;
-	    }
+            input[type=range] {
+            padding: 0px;
+            margin-left: 5px;
+            margin-top: 0px;
+            margin-bottom: 0px;
+            width:220px;
+            }
+            input {
+            margin: 0px 5px;
+            }
             #nav-left {
                 padding-top: 5px;
                 background-color: #383838;
@@ -62,7 +62,7 @@
             }
             #nav-left + div {
                 padding-left: 300px;
-	        height: 100vh;
+                height: 100vh;
             }
 
             #locInput {
@@ -71,41 +71,41 @@
             #sizeInput {
                 width: 40px;
             }
-	    #bandInput {
-	        width: 30%;
-	    }
-	    #colorInput {
-	        width: 30%;
-	    }
-	    #modeInput {
-	        width: 25%;
-	    }
+            #bandInput {
+                width: 30%;
+            }
+            #colorInput {
+                width: 30%;
+            }
+            #modeInput {
+                width: 25%;
+            }
             #verValue {
                 margin: 0;
                 font-size: 2em;
                 font-weight: bold;
             }
-	    .settingsDiv {
-	        overflow-y: auto;
-	        height: 30vh;
-	    }
-	    .dataDiv {
-	        overflow-y: auto;
-	        height: 5vh;
-	    }
-	    .aboutDiv {
-	        overflow-y: auto;
-	        height: 60vh;
-	    }
+            .settingsDiv {
+                overflow-y: auto;
+                height: 30vh;
+            }
+            .dataDiv {
+                overflow-y: auto;
+                height: 5vh;
+            }
+            .aboutDiv {
+                overflow-y: auto;
+                height: 60vh;
+            }
             .row {
                 padding: 3px 10px;
                 width: 100%;
             }
-	    .sliderrow {
-	        margin-top: 0px;
-	        padding: 0px 10px;
-	        width: 100%;
-	    }
+            .sliderrow {
+                margin-top: 0px;
+                padding: 0px 10px;
+                width: 100%;
+            }
             .inline {
                 float: left;
                 margin-right: 10px;
@@ -145,8 +145,8 @@
                 this.border_input = jQuery("#borderInput");
                 this.context = this.canvas.get(0).getContext("2d");
 
-	        this.versions = [];
-	        this.epochs = [];
+                this.versions = [];
+                this.epochs = [];
                 this.full_depth_versions = ["allwise", "neo1", "neo2", "neo3"];
 
                 this.updateSpeed = function () {
@@ -158,8 +158,7 @@
 
                 this.updateUrl = function () {
                     var loc_split = this.parseLoc();
-
-                    window.location.hash = jQuery.param({
+                    var args = {
                         ra: loc_split[0], 
                         dec: loc_split[1], 
                         size: this.size_input.val(), 
@@ -167,12 +166,20 @@
                         speed: this.speed_input.val(), 
                         trimbright: this.trimbright_input.val(),
                         linear: this.linear_input.val(),
-	                color: this.color_input.val(),
-	                mode: this.mode_input.val(),
-	                coadd_mode: this.coadd_mode_input.val(),
+                        color: this.color_input.val(),
+                        mode: this.mode_input.val(),
+                        coadd_mode: this.coadd_mode_input.val(),
                         zoom: this.zoom_input.val(),
                         border: this.border_input.prop("checked") ? 1 : 0,
-                    });
+                    };
+                    
+                    if (this.coadd_mode_input.val() == "shift-and-add" ||
+                        this.coadd_mode_input.val() == "daniella") {
+                        args["pmra"] = this.pmra_input.val();
+                        args["pmdec"] = this.pmdec_input.val();
+                    }
+                    
+                    window.location.hash = jQuery.param(args);
                 };
 
                 this.updateOtherSliders = function () {
@@ -180,7 +187,7 @@
                     this.trimbright_output.text((this.trimbright_input.val()))
                     this.updateUrl();
                 }
-	    
+            
                 this.updateZoom = function () {
                     this.zoom_output.text((this.zoom_input.val() * 100) + "%");
 
@@ -202,20 +209,20 @@
                     var loc_split = this.parseLoc();
 
                     jQuery.getJSON("/pawnstars", {
-	                "ra": loc_split[0],
+                        "ra": loc_split[0],
                         "dec": loc_split[1],
                         "size": this.size_input.val()*4 // arcseconds to pixels
-	            }, function (response) {
+                    }, function (response) {
                         var new_img = document.createElement("img");
                         new_img.setAttribute("src", response)
                         jQuery("#pawnstars").empty().append(new_img);
                     });
                 };
 
-	        this.updateZooiSubjects = function () {
-	            var loc_split = this.parseLoc();
-	            jQuery.getJSON("/xref", {
-	                "ra": loc_split[0],
+                this.updateZooiSubjects = function () {
+                    var loc_split = this.parseLoc();
+                    jQuery.getJSON("/xref", {
+                        "ra": loc_split[0],
                         "dec": loc_split[1]
                     }, function (response) {
                         var zs = jQuery("#zooiSubjects");
@@ -246,7 +253,20 @@
                     this.speed_input.val(map.speed || 500);
                     this.color_input.val(map.color || "gray");
                     this.mode_input.val(map.mode || "percent");
-                    this.coadd_mode_input.val(map.coadd_mode || "time-resolved");
+                    
+                    var cmi = (map.coadd_mode || "time-resolved");
+                    var found = false;console.log(this.coadd_mode_input[0].options[0].value)
+                    for (var i=0; i < this.coadd_mode_input[0].options.length; i++) {
+                        if (this.coadd_mode_input[0].options[i].value == cmi) { found = true; break; }
+                    }
+                    
+                    if (!found) {
+                        var opt = new Option(cmi,cmi);
+                        this.coadd_mode_input.append(opt);
+                    }
+                    
+                    this.coadd_mode_input.val(cmi)
+                    
                     this.linear_input.val(map.linear || 0.2);
                     this.trimbright_input.val(map.trimbright || 99.2);
                     this.pmra_input.val(map.pmra || 0);
@@ -282,16 +302,16 @@
                     if (!this.border_input.prop("checked")) {
                         this.canvas.css("border","");
                     } else if (this.cur_img == 0) {
-                        this.canvas.css("border","5px dashed #FFFFFF");
+                        this.canvas.css("border","3px dashed #999999");
                     } else {
-                        this.canvas.css("border","5px dashed #000000");
+                        this.canvas.css("border","3px dashed #000000");
                     }
                 };
 
                 this.draw = function () {
                     if (!isNaN(this.cur_img)) {
-			var image = this.images[this.cur_img];
-			this.context.drawImage(image, 0, 0);
+                        var image = this.images[this.cur_img];
+                        this.context.drawImage(image, 0, 0);
                     }
                 };
 
@@ -300,69 +320,54 @@
                     this.draw();
                 };
 
-		this.make_imgs = function () {
+                this.make_imgs = function () {
                     var loc_split = this.parseLoc();
                     
                     var that = this;
                     
-		    for (v in this.versions) {
+                    for (v in this.versions) {
+                        var args = {
+                            ra: loc_split[0], 
+                            dec: loc_split[1], 
+                            size: (~~(that.size_input.val()/2.75)), // Convert arcseconds to pixels
+                            band: that.band_input.val(), 
+                            color: that.color_input.val(), 
+                            mode: that.mode_input.val(), 
+                            coadd_mode: that.coadd_mode_input.val(), 
+                            linear: that.linear_input.val(), 
+                            trimbright: that.trimbright_input.val(),
+                            zoom: that.zoom_input.val(),
+                        };
+                        
                         if (this.epochs === null) {
-                            // Legacy mode for full-depth
-			    var new_url = url + jQuery.param({
-				ra: loc_split[0], 
-				dec: loc_split[1], 
-				size: (~~(that.size_input.val()/2.75)), // Convert arcseconds to pixels
-				band: that.band_input.val(), 
-				color: that.color_input.val(), 
-				mode: that.mode_input.val(), 
-				coadd_mode: that.coadd_mode_input.val(), 
-				linear: that.linear_input.val(), 
-				trimbright: that.trimbright_input.val(),
-				zoom: that.zoom_input.val(),
-				version: this.versions[v],
-			    });
-			} else if ("px" in this.epochs[v]) {
-			    var new_url = url + jQuery.param({
-				ra: loc_split[0], 
-				dec: loc_split[1], 
-				size: (~~(that.size_input.val()/2.75)), // Convert arcseconds to pixels
-				band: that.band_input.val(), 
-				color: that.color_input.val(), 
-				mode: that.mode_input.val(), 
-				coadd_mode: that.coadd_mode_input.val(), 
-				linear: that.linear_input.val(), 
-				trimbright: that.trimbright_input.val(),
-				zoom: that.zoom_input.val(),
-				epochs: this.epochs[v]["epochs"],
-				px: this.epochs[v]["px"],
-				py: this.epochs[v]["py"],
-				tile: this.epochs[v]["tile"],
-			    },true);
-			} else {
-			    var new_url = url + jQuery.param({
-				ra: loc_split[0], 
-				dec: loc_split[1], 
-				size: (~~(that.size_input.val()/2.75)), // Convert arcseconds to pixels
-				band: that.band_input.val(), 
-				color: that.color_input.val(), 
-				mode: that.mode_input.val(), 
-				coadd_mode: that.coadd_mode_input.val(), 
-				linear: that.linear_input.val(), 
-				trimbright: that.trimbright_input.val(),
-				zoom: that.zoom_input.val(),
-				epochs: this.epochs[v]["epochs"],
-				tile: this.epochs[v]["tile"],
-			    },true);
-			}
-			var new_img = document.createElement("img");
-			new_img.setAttribute("src", new_url);
-			jQuery(new_img).on("load", function () {
-			    that.real_img_size = [this.width, this.height];
-			    that.updateZoom();
-			});
-			that.images.push(new_img);
-		    }
-		};
+                            args["version"] = this.versions[v];
+                        } else {
+                            if ("px" in this.epochs[v])
+                                args["px"] = this.epochs[v]["px"];
+                            if ("py" in this.epochs[v])
+                                args["py"] = this.epochs[v]["py"];
+                            if ("ra" in this.epochs[v])
+                                args["ra"] = this.epochs[v]["ra"];
+                            if ("dec" in this.epochs[v])
+                                args["dec"] = this.epochs[v]["dec"];
+                            if ("epochs" in this.epochs[v])
+                                args["epochs"] = this.epochs[v]["epochs"];
+                            if ("tile" in this.epochs[v])
+                                args["tile"] = this.epochs[v]["tile"];
+                            if ("mods" in this.epochs[v])
+                                args["mods"] = this.epochs[v]["mods"];
+                        }
+                        
+                        var new_url = url + jQuery.param(args,true);
+                        var new_img = document.createElement("img");
+                        new_img.setAttribute("src", new_url);
+                        jQuery(new_img).on("load", function () {
+                            that.real_img_size = [this.width, this.height];
+                            that.updateZoom();
+                        });
+                        that.images.push(new_img);
+                    }
+                };
                 
                 this.notifygo = function () { console.log("Fired input changed"); }
                 
@@ -370,7 +375,7 @@
                     this.reset();
 
                     var loc_split = this.parseLoc();
-	            
+                    
                     if (this.mode_input.val() == "adapt") {
                         jQuery("#trimbrightRow").hide()
                     } else if(this.mode_input.val() == "fixed") {
@@ -383,7 +388,8 @@
                         jQuery("#trimbrightInput").attr("min",75.0)
                     }
                     
-                    if (this.coadd_mode_input.val() == "shift-and-add") {
+                    if (this.coadd_mode_input.val() == "shift-and-add" ||
+                        this.coadd_mode_input.val() == "daniella") {
                         jQuery("#pmraRow").show()
                         jQuery("#pmdecRow").show()
                     } else {
@@ -394,67 +400,47 @@
                     var that = this;
                     
                     if (this.coadd_mode_input.val() == "full-depth") {
+                        // Not legacy
                         this.versions = this.full_depth_versions.slice();
-			this.epochs = null;
+                        this.epochs = null;
                         this.make_imgs();
                         this.draw();
-                    } else if (this.coadd_mode_input.val() == "shift-and-add"){
-			var band = that.band_input.val();
-			if (band == 3) { band = 1; } // Use W1 meta for W1 and W2... can fail in corner cases :(
-			
-			jQuery.getJSON("/coadd_strategy", {
-			    "ra": loc_split[0],
-			    "dec": loc_split[1],
-			    "band": band,
-			    "coadd_mode": this.coadd_mode_input.val(),
-			    "pmra": this.pmra_input.val(),
-			    "pmdec": this.pmdec_input.val(),
-			}, function (response) {
-			    that.versions = [];
-			    that.epochs = response["solutions"];
-			    
-			    for (s in response["solutions"]) {
-			        sol = response["solutions"][s];
-			        
-			        // Create titles
-			        that.versions.push(mjd_to_aarondate(sol["mjdmeans"][0])+" - "+mjd_to_aarondate(sol["mjdmeans"][sol["mjdmeans"].length-1]))
-			        
-			        // Epochs to query
-			        //that.epochs.push(sol["epochs"])
-			    }
+                    } else {
+                        var band = that.band_input.val();
+                        if (band == 3) { band = 1; } // Use W1 meta for W1 and W2... can fail in corner cases :(
+                        
+                        var args = {
+                            "ra": loc_split[0],
+                            "dec": loc_split[1],
+                            "band": band,
+                            "coadd_mode": this.coadd_mode_input.val(),
+                        }
+                        
+                        if (this.coadd_mode_input.val() == "shift-and-add" ||
+                            this.coadd_mode_input.val() == "daniella") {
+                            args["pmra"] = this.pmra_input.val();
+                            args["pmdec"] = this.pmdec_input.val();
+                        }
+                        
+                        jQuery.getJSON("/coadd_strategy", args, function (response) {
+                            that.versions = [];
+                            that.epochs = response["solutions"];
+                            
+                            for (s in response["solutions"]) {
+                                sol = response["solutions"][s];
+                                
+                                // Create titles
+                                that.versions.push(mjd_to_aarondate(sol["mjdmeans"][0])+" - "+mjd_to_aarondate(sol["mjdmeans"][sol["mjdmeans"].length-1]))
+                                
+                            }
                             that.make_imgs();
                             that.draw();
-			})
-		    } else {
-			var band = that.band_input.val();
-			if (band == 3) { band = 1; } // Use W1 meta for W1 and W2... can fail in corner cases :(
-			
-			jQuery.getJSON("/coadd_strategy", {
-			    "ra": loc_split[0],
-			    "dec": loc_split[1],
-			    "band": band,
-			    "coadd_mode": this.coadd_mode_input.val()
-			}, function (response) {
-			    that.versions = [];
-			    that.epochs = response["solutions"];
-			    
-			    for (s in response["solutions"]) {
-			        sol = response["solutions"][s];
-			        
-			        // Create titles
-			        that.versions.push(mjd_to_aarondate(sol["mjdmeans"][0])+" - "+mjd_to_aarondate(sol["mjdmeans"][sol["mjdmeans"].length-1]))
-			        
-			        // Epochs to query
-			        //that.epochs.push(sol["epochs"])
-			    }
-                            that.make_imgs();
-                            that.draw();
-			})
-		    }
+                        })
+                    }
 
                     this.updatePawnstars();
-	            this.updateZooiSubjects();
-	            this.updateOtherSliders();
+                    this.updateZooiSubjects();
+                    this.updateOtherSliders();
                     this.updateZoom();
                     this.updateUrl();
                     this.updateSpeed();
@@ -476,16 +462,16 @@
                 //jQuery(".resetters").on("change", ws.notifygo.bind(ws));
                 jQuery("#speedInput").on('change', ws.updateSpeed.bind(ws));
                 jQuery("#zoomInput").on('change', ws.updateZoom.bind(ws));
-	        jQuery("#linearInput").on("mouseup", ws.restart.bind(ws));
-	    	jQuery("#trimbrightInput").on("mouseup", ws.restart.bind(ws));
-	        jQuery("#linearInput").on("change", ws.updateOtherSliders.bind(ws));
-	    	jQuery("#trimbrightInput").on("change", ws.updateOtherSliders.bind(ws));
+                jQuery("#linearInput").on("mouseup", ws.restart.bind(ws));
+                    jQuery("#trimbrightInput").on("mouseup", ws.restart.bind(ws));
+                jQuery("#linearInput").on("change", ws.updateOtherSliders.bind(ws));
+                    jQuery("#trimbrightInput").on("change", ws.updateOtherSliders.bind(ws));
             });
         </script>
     </head>
     <body>
       <div id="nav-left">
-	<div class="settingsDiv">
+        <div class="settingsDiv">
           <div class="row">
             <label for="locInput">Right Ascension and declination (decimal)</label>
             <input type="text" class="resetters" id="locInput">
@@ -496,128 +482,128 @@
               <input type="text" class="resetters" id="sizeInput" value="60">
             </div>
           </div>
-	  <div class="row">
-	    <div>
-	      <select class="resetters" id="bandInput">
-		<option selected disabled>Band[s]</option>
-		<option value=1>W1</option>
-		<option select="selected" value=2>W2</option>
-		<option value=3>W1+W2</option>
-	      </select>
-	      <select class="resetters" id="colorInput">
-		<option selected disabled>Color</option>
-		<option value="viridis">viridis</option>
-		<option value="plasma">plasma</option>
-		<option value="inferno">inferno</option>
-		<option value="magma">magma</option>
-		<option value="Greys">Greys</option>
-		<option value="Purples">Purples</option>
-		<option value="Blues">Blues</option>
-		<option value="Greens">Greens</option>
-		<option value="Oranges">Oranges</option>
-		<option value="Reds">Reds</option>
-		<option value="YlOrBr">YlOrBr</option>
-		<option value="YlOrRd">YlOrRd</option>
-		<option value="OrRd">OrRd</option>
-		<option value="PuRd">PuRd</option>
-		<option value="RdPu">RdPu</option>
-		<option value="BuPu">BuPu</option>
-		<option value="GnBu">GnBu</option>
-		<option value="PuBu">PuBu</option>
-		<option value="YlGnBu">YlGnBu</option>
-		<option value="PuBuGn">PuBuGn</option>
-		<option value="BuGn">BuGn</option>
-		<option value="YlGn">YlGn</option>
-		<option value="binary">binary</option>
-		<option value="gist_yarg">gist_yarg</option>
-		<option value="gist_gray">gist_gray</option>
-		<option select="selected" value="gray">gray</option>
-		<option value="bone">bone</option>
-		<option value="pink">pink</option>
-		<option value="spring">spring</option>
-		<option value="summer">summer</option>
-		<option value="autumn">autumn</option>
-		<option value="winter">winter</option>
-		<option value="cool">cool</option>
-		<option value="Wistia">Wistia</option>
-		<option value="hot">hot</option>
-		<option value="afmhot">afmhot</option>
-		<option value="gist_heat">gist_heat</option>
-		<option value="copper">copper</option>
-		<option value="PiYG">PiYG</option>
-		<option value="PRGn">PRGn</option>
-		<option value="BrBG">BrBG</option>
-		<option value="PuOr">PuOr</option>
-		<option value="RdGy">RdGy</option>
-		<option value="RdBu">RdBu</option>
-		<option value="RdYlBu">RdYlBu</option>
-		<option value="RdYlGn">RdYlGn</option>
-		<option value="Spectral">Spectral</option>
-		<option value="coolwarm">coolwarm</option>
-		<option value="bwr">bwr</option>
-		<option value="seismic">seismic</option>
-		<option value="Pastel1">Pastel1</option>
-		<option value="Pastel2">Pastel2</option>
-		<option value="Paired">Paired</option>
-		<option value="Accent">Accent</option>
-		<option value="Dark2">Dark2</option>
-		<option value="Set1">Set1</option>
-		<option value="Set2">Set2</option>
-		<option value="Set3">Set3</option>
-		<option value="tab10">tab10</option>
-		<option value="tab20">tab20</option>
-		<option value="tab20b">tab20b</option>
-		<option value="tab20c">tab20c</option>
-		<option value="flag">flag</option>
-		<option value="prism">prism</option>
-		<option value="ocean">ocean</option>
-		<option value="gist_earth">gist_earth</option>
-		<option value="terrain">terrain</option>
-		<option value="gist_stern">gist_stern</option>
-		<option value="gnuplot">gnuplot</option>
-		<option value="gnuplot2">gnuplot2</option>
-		<option value="CMRmap">CMRmap</option>
-		<option value="cubehelix">cubehelix</option>
-		<option value="brg">brg</option>
-		<option value="hsv">hsv</option>
-		<option value="gist_rainbow">gist_rainbow</option>
-		<option value="rainbow">rainbow</option>
-		<option value="jet">jet</option>
-		<option value="nipy_spectral">nipy_spectral</option>
-		<option value="gist_ncar">gist_ncar</option>
-	      </select>
-	      <select class="resetters" id="modeInput">
-		<option selected disabled>Drawing Mode</option>
-		<option value="adapt">adapt</option>
-		<option value="fixed">fixed</option>
-		<option select="selected" value="percent">percent</option>
-	      </select>
-	    </div>
-	  </div>
+          <div class="row">
+            <div>
+              <select class="resetters" id="bandInput">
+                <option selected disabled>Band[s]</option>
+                <option value=1>W1</option>
+                <option select="selected" value=2>W2</option>
+                <option value=3>W1+W2</option>
+              </select>
+              <select class="resetters" id="colorInput">
+                <option selected disabled>Color</option>
+                <option value="viridis">viridis</option>
+                <option value="plasma">plasma</option>
+                <option value="inferno">inferno</option>
+                <option value="magma">magma</option>
+                <option value="Greys">Greys</option>
+                <option value="Purples">Purples</option>
+                <option value="Blues">Blues</option>
+                <option value="Greens">Greens</option>
+                <option value="Oranges">Oranges</option>
+                <option value="Reds">Reds</option>
+                <option value="YlOrBr">YlOrBr</option>
+                <option value="YlOrRd">YlOrRd</option>
+                <option value="OrRd">OrRd</option>
+                <option value="PuRd">PuRd</option>
+                <option value="RdPu">RdPu</option>
+                <option value="BuPu">BuPu</option>
+                <option value="GnBu">GnBu</option>
+                <option value="PuBu">PuBu</option>
+                <option value="YlGnBu">YlGnBu</option>
+                <option value="PuBuGn">PuBuGn</option>
+                <option value="BuGn">BuGn</option>
+                <option value="YlGn">YlGn</option>
+                <option value="binary">binary</option>
+                <option value="gist_yarg">gist_yarg</option>
+                <option value="gist_gray">gist_gray</option>
+                <option select="selected" value="gray">gray</option>
+                <option value="bone">bone</option>
+                <option value="pink">pink</option>
+                <option value="spring">spring</option>
+                <option value="summer">summer</option>
+                <option value="autumn">autumn</option>
+                <option value="winter">winter</option>
+                <option value="cool">cool</option>
+                <option value="Wistia">Wistia</option>
+                <option value="hot">hot</option>
+                <option value="afmhot">afmhot</option>
+                <option value="gist_heat">gist_heat</option>
+                <option value="copper">copper</option>
+                <option value="PiYG">PiYG</option>
+                <option value="PRGn">PRGn</option>
+                <option value="BrBG">BrBG</option>
+                <option value="PuOr">PuOr</option>
+                <option value="RdGy">RdGy</option>
+                <option value="RdBu">RdBu</option>
+                <option value="RdYlBu">RdYlBu</option>
+                <option value="RdYlGn">RdYlGn</option>
+                <option value="Spectral">Spectral</option>
+                <option value="coolwarm">coolwarm</option>
+                <option value="bwr">bwr</option>
+                <option value="seismic">seismic</option>
+                <option value="Pastel1">Pastel1</option>
+                <option value="Pastel2">Pastel2</option>
+                <option value="Paired">Paired</option>
+                <option value="Accent">Accent</option>
+                <option value="Dark2">Dark2</option>
+                <option value="Set1">Set1</option>
+                <option value="Set2">Set2</option>
+                <option value="Set3">Set3</option>
+                <option value="tab10">tab10</option>
+                <option value="tab20">tab20</option>
+                <option value="tab20b">tab20b</option>
+                <option value="tab20c">tab20c</option>
+                <option value="flag">flag</option>
+                <option value="prism">prism</option>
+                <option value="ocean">ocean</option>
+                <option value="gist_earth">gist_earth</option>
+                <option value="terrain">terrain</option>
+                <option value="gist_stern">gist_stern</option>
+                <option value="gnuplot">gnuplot</option>
+                <option value="gnuplot2">gnuplot2</option>
+                <option value="CMRmap">CMRmap</option>
+                <option value="cubehelix">cubehelix</option>
+                <option value="brg">brg</option>
+                <option value="hsv">hsv</option>
+                <option value="gist_rainbow">gist_rainbow</option>
+                <option value="rainbow">rainbow</option>
+                <option value="jet">jet</option>
+                <option value="nipy_spectral">nipy_spectral</option>
+                <option value="gist_ncar">gist_ncar</option>
+              </select>
+              <select class="resetters" id="modeInput">
+                <option selected disabled>Drawing Mode</option>
+                <option value="adapt">adapt</option>
+                <option value="fixed">fixed</option>
+                <option select="selected" value="percent">percent</option>
+              </select>
+            </div>
+          </div>
           <div class="sliderrow" id="trimbrightRow">
-	    <div>
+            <div>
               <label for="trimbrightInput">Trim Bright (<span id="trimbrightValue"></span>)</label>
               <input type="range" min="-10000" max="10000" value="99.2" step="0.01" id="trimbrightInput">
-	    </div>
-	  </div>
-	  <div class="sliderrow">
-	    <div>
+            </div>
+          </div>
+          <div class="sliderrow">
+            <div>
               <label for="linearInput">Linear (<span id="linearValue"></span>)</label>
               <input type="range" min="0" max="1" value="0.05" step="0.001" id="linearInput">
-	    </div>
-	  </div>
-	  <div class="sliderrow">
-	    <div>
+            </div>
+          </div>
+          <div class="sliderrow">
+            <div>
               <label for="speedInput">Speed (<span id="speedValue"></span>)</label>
               <input type="range" min="20" max="3000" value="500" id="speedInput">
-	    </div>
-	  </div>
+            </div>
+          </div>
           <div class="sliderrow">
-	    <div>
+            <div>
               <label for="speedInput">Zoom (<span id="zoomValue"></span>)</label>
               <input type="range" min="1" max="20" value="10" id="zoomInput">
-	    </div>
-	  </div>
+            </div>
+          </div>
           <div class="row" id="pmraRow">
             <div>
               <label for="pmraInput" style="display: inline;">pmra (mas/yr):</label>
@@ -630,54 +616,54 @@
               <input type="text" class="resetters" id="pmdecInput" value="0">
             </div>
           </div>
-	  <div class="row">
+          <div class="row">
             <div>
               <label for="coaddModeInput" style="display: inline;">Coadd Mode</label>
-	      <select class="resetters" id="coaddModeInput">
-		<option selected disabled>Drawing Mode</option>
-		<option select="selected" value="time-resolved">time-resolved</option>
-		<option value="parallax-cancelling-forward">parallax-cancelling-backward</option>
-		<option value="parallax-cancelling-backward">parallax-cancelling-forward</option>
-		<option value="full-depth">full-depth</option>
-		<option value="window-0.5-year">window-0.5-year</option>
-		<option value="window-1.0-year">window-1.0-year</option>
-		<option value="window-1.5-year">window-1.5-year</option>
-		<option value="window-2.0-year">window-2.0-year</option>
-		<option value="window-2.5-year">window-2.5-year</option>
-		<option value="window-3.0-year">window-3.0-year</option>
-		<option value="pre-post">pre-post</option>
-		<option value="parallax-enhancing">parallax-enhancing</option>
-		<option value="shift-and-add">shift-and-add</option>
-	      </select>
+              <select class="resetters" id="coaddModeInput">
+                <option selected disabled>Drawing Mode</option>
+                <option select="selected" value="time-resolved">time-resolved</option>
+                <option value="parallax-cancelling-forward">parallax-cancelling-backward</option>
+                <option value="parallax-cancelling-backward">parallax-cancelling-forward</option>
+                <option value="full-depth">full-depth</option>
+                <option value="window-0.5-year">window-0.5-year</option>
+                <option value="window-1.0-year">window-1.0-year</option>
+                <option value="window-1.5-year">window-1.5-year</option>
+                <option value="window-2.0-year">window-2.0-year</option>
+                <option value="window-2.5-year">window-2.5-year</option>
+                <option value="window-3.0-year">window-3.0-year</option>
+                <option value="pre-post">pre-post</option>
+                <option value="parallax-enhancing">parallax-enhancing</option>
+                <option value="shift-and-add">shift-and-add</option>
+              </select>
             </div>
           </div>
-	  <div class="row">
+          <div class="row">
             <div>
               <label for="borderInput" style="display: inline;">Border Epoch 0</label>
-	      <input type="checkbox" class="resetters" id="borderInput" checked>
+              <input type="checkbox" class="resetters" id="borderInput" checked>
             </div>
           </div>
 	  <div><p></p></div>
 	</div>
         <hr>
-	<div class="dataDiv">
-	  <div class="row">
-	    <label for="zooiSubjects">Nearest Zooniverse Subjects:</label>
-	    <p style="margin: 0px; padding: 0px;" id="zooiSubjects">...</p>
-	  </div>
-	</div>
+        <div class="dataDiv">
+          <div class="row">
+            <label for="zooiSubjects">Nearest Zooniverse Subjects:</label>
+            <p style="margin: 0px; padding: 0px;" id="zooiSubjects">...</p>
+          </div>
+        </div>
         <hr>
-	<div class="aboutDiv">
-	  <h1>About</h1>
-	  <p style="margin-top: 2px;">Images sourced by <a href="http://unwise.me">unWISE</a>[1,2,3] (top) and <a href="https://panstarrs.stsci.edu/">Pan-STARRS</a> (bottom).</p>
-	  <p>unWISE images are then stretched with <a href="http://docs.astropy.org/en/stable/api/astropy.visualization.AsinhStretch.html#astropy.visualization.AsinhStretch">astropy.visualization.AsinhStretch</a>, where the "Linear" slider controls the "a" parameter. "Trim Bright" changes the maximum intensity before stretching. In "percent" mode, "Trim Bright" scales to the "Trim Bright" percentile, whereas "fixed" sets an absolute maximum intensity. For example, "percent" with "99.5" caps the intensity to that of the 99.5th percentile pixel, whereas "fixed" with "1000" caps it at 1000. "adapt" attempts to find good minimum and maximum values automatically, and does not take a "Trim Bright" input.</p>
-	  <p>To replicate legacy wiseview behavior, use either "fixed" or "percent" (instead of legacy "Brighten"), and set "linear" = 1.</p>
-	  <p>Band W1 and W2 correspond to WISE bands. "Bands W1+W2" displays a color image where W1 is blue and W2 is red.</p>
-	  <p>This site is authored by Dan Caselden and Paul Westin. For questions, you may contact this gmail address: dancaselden</p>
-	  <p>[1] unWISE AllWISE: <a href="http://adsabs.harvard.edu/abs/2014AJ....147..108L">http://adsabs.harvard.edu/abs/2014AJ....147..108L</a></p>
-	  <p>[2] unWISE NEO1: <a href="http://adsabs.harvard.edu/abs/2017AJ....153...38M">http://adsabs.harvard.edu/abs/2017AJ....153...38M</a></p>
-	  <p>[3] unWISE NEO2: <a href="http://adsabs.harvard.edu/abs/2017arXiv170506746M">http://adsabs.harvard.edu/abs/2017arXiv170506746M</a></p>
-	</div>
+        <div class="aboutDiv">
+          <h1>About</h1>
+          <p style="margin-top: 2px;">Images sourced by <a href="http://unwise.me">unWISE</a>[1,2,3] (top) and <a href="https://panstarrs.stsci.edu/">Pan-STARRS</a> (bottom).</p>
+          <p>unWISE images are then stretched with <a href="http://docs.astropy.org/en/stable/api/astropy.visualization.AsinhStretch.html#astropy.visualization.AsinhStretch">astropy.visualization.AsinhStretch</a>, where the "Linear" slider controls the "a" parameter. "Trim Bright" changes the maximum intensity before stretching. In "percent" mode, "Trim Bright" scales to the "Trim Bright" percentile, whereas "fixed" sets an absolute maximum intensity. For example, "percent" with "99.5" caps the intensity to that of the 99.5th percentile pixel, whereas "fixed" with "1000" caps it at 1000. "adapt" attempts to find good minimum and maximum values automatically, and does not take a "Trim Bright" input.</p>
+          <p>To replicate legacy wiseview behavior, use either "fixed" or "percent" (instead of legacy "Brighten"), and set "linear" = 1.</p>
+          <p>Band W1 and W2 correspond to WISE bands. "Bands W1+W2" displays a color image where W1 is blue and W2 is red.</p>
+          <p>This site is authored by Dan Caselden and Paul Westin. For questions, you may contact this gmail address: dancaselden</p>
+          <p>[1] unWISE AllWISE: <a href="http://adsabs.harvard.edu/abs/2014AJ....147..108L">http://adsabs.harvard.edu/abs/2014AJ....147..108L</a></p>
+          <p>[2] unWISE NEO1: <a href="http://adsabs.harvard.edu/abs/2017AJ....153...38M">http://adsabs.harvard.edu/abs/2017AJ....153...38M</a></p>
+          <p>[3] unWISE NEO2: <a href="http://adsabs.harvard.edu/abs/2017arXiv170506746M">http://adsabs.harvard.edu/abs/2017arXiv170506746M</a></p>
+        </div>
       </div>
       <div class="row">
         <p id="verValue">Survey Name</p>
