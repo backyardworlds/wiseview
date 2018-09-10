@@ -148,7 +148,10 @@ def get_unwise_cutout(ra,dec,size,band,version,mode,color,linear,trimbright):
         im = convert_img(cutout, color, mode, linear,
                          trimbright)
         sio = StringIO()
-        im.save(sio,format="png")
+        if color is not None:
+            plt.imsave(sio,im,format="png",cmap=color)
+        else:
+            im.save(sio,format="png")
         converted.append(sio.getvalue())
 
     image = merge_imgs(converted)
@@ -240,7 +243,7 @@ def request_tspot_cutout(ra,dec,size,band,epoch,tile,covmap=True):
     return cutout
 
 
-def _build_cutout(ra,dec,size,band,epochs,px,py,tile,covmap):
+def _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile,covmap):
     ims = []
     cms = []
     projecting = False
@@ -270,6 +273,14 @@ def _build_cutout(ra,dec,size,band,epochs,px,py,tile,covmap):
             if covmap:
                 cm = project_im(cm,px_,py_)
 
+        if mods is not None and i < len(mods):
+            if "d" in mods:
+                # Daniella mode!
+                im = im-np.rot90(im,k=2)
+                # Clip bottom (should do in image_parsing,
+                # but that will take some re-twiddling)
+                im = np.maximum(im,-25)
+            
         ims.append(im)
 
         if covmap:
@@ -279,19 +290,21 @@ def _build_cutout(ra,dec,size,band,epochs,px,py,tile,covmap):
     if covmap:
         return np.ma.average(ims,weights=cms,axis=0)
     else:
-        return np.average(ims,axis=0)
+        im = np.average(ims,axis=0)
+        print im
+        return im
 
 
-def get_cutout(ra,dec,size,band,epochs,px,py,
+def get_cutout(ra,dec,size,band,epochs,px,py,mods,
                tile,mode,color,linear,trimbright,covmap):
-    cutout = _build_cutout(ra,dec,size,band,epochs,px,py,tile,covmap)
+    cutout = _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile,covmap)
     return convert_img(cutout,color,mode,linear,trimbright),200
 
 
-def get_composite(ra,dec,size,epochs,px,py,tile,mode,color,linear,trimbright,covmap):
+def get_composite(ra,dec,size,epochs,px,py,mods,tile,mode,color,linear,trimbright,covmap):
     """Fetch w1 and w2 images from tspot and build a w1+w2 composite"""
-    w1 = _build_cutout(ra,dec,size,1,epochs,px,py,tile,covmap)
-    w2 = _build_cutout(ra,dec,size,2,epochs,px,py,tile,covmap)
+    w1 = _build_cutout(ra,dec,size,1,epochs,px,py,mods,tile,covmap)
+    w2 = _build_cutout(ra,dec,size,2,epochs,px,py,mods,tile,covmap)
 
     # Normalize to w1
     w2 = w2 + (np.median(w1) - np.median(w2))
@@ -332,6 +345,7 @@ class Convert(Resource):
         parser.add_argument("epochs", type=int, action="append")
         parser.add_argument("px", type=int, action="append")
         parser.add_argument("py", type=int, action="append")
+        parser.add_argument("mods", type=str, action="append")
         parser.add_argument("tile", type=str)
         parser.add_argument("mode", type=str, default="adapt",
                             choices=["adapt","percent","fixed"])
@@ -342,7 +356,7 @@ class Convert(Resource):
         parser.add_argument("covmap", type=int, choices=(0,1), default=0)
         args = parser.parse_args()
 
-        cutout, status_code = self.convert(args.ra,args.dec,args.size,args.band,args.version,args.epochs,args.px,args.py,args.tile,args.mode,args.color,args.linear,args.trimbright,args.covmap,raw=False)
+        cutout, status_code = self.convert(args.ra,args.dec,args.size,args.band,args.version,args.epochs,args.px,args.py,args.mods,args.tile,args.mode,args.color,args.linear,args.trimbright,args.covmap,raw=False)
         
         if status_code != 200:
             return cutout, status_code
@@ -351,7 +365,7 @@ class Convert(Resource):
 
     
     @staticmethod
-    def convert(ra,dec,size,band,version,epochs,px,py,tile,mode,color,linear,trimbright,covmap,raw=False):
+    def convert(ra,dec,size,band,version,epochs,px,py,mods,tile,mode,color,linear,trimbright,covmap,raw=False):
 
         if linear <= 0.0: linear = 0.0000000001
         elif linear > 1.0: linear = 1.0
@@ -362,7 +376,7 @@ class Convert(Resource):
         if version is None:
             if band in (1,2):
                 cutout, status = get_cutout(ra,dec,size,band,
-                                            epochs,px,py,
+                                            epochs,px,py,mods,
                                             tile,
                                             mode,color,linear,
                                             trimbright,
@@ -382,7 +396,7 @@ class Convert(Resource):
             
             elif band == 3:
                 cutout, status = get_composite(ra,dec,size,
-                                               epochs,px,py,
+                                               epochs,px,py,mods,
                                                tile,
                                                mode,color,linear,
                                                trimbright,
@@ -631,13 +645,14 @@ class Coadd_Strategy_Page(Resource):
                                      "window-3.0-year",
                                      "pre-post",
                                      "parallax-enhancing",
-                                     "shift-and-add"))
+                                     "shift-and-add",
+                                     "daniella"))
         parser.add_argument("pmra", type=float, required=False)
         parser.add_argument("pmdec", type=float, required=False)
         args = parser.parse_args()
 
         try:
-            solutions = self.coadd_strategy(args.ra,args.dec,args.band,args.coadd_mode,args.pmra,args.dec)
+            solutions = self.coadd_strategy(args.ra,args.dec,args.band,args.coadd_mode,args.pmra,args.pmdec)
         except Exception,e:
             return e.message,500
             
@@ -755,16 +770,24 @@ class Coadd_Strategy_Page(Resource):
                                    for x in s["MJDMEAN"]]}
                 solutions.append(sol)
 
-        elif coadd_mode == "shift-and-add":
+        elif coadd_mode in ("shift-and-add","daniella"):
             if pmra is None or pmdec is None:
                 raise Exception("Provide pmra and pmdec parameters to shift-and-add")
 
             coadds = coadds.loc[(coadd_id,slice(None),band),:].copy()
-            c = coadds.loc[np.abs(coadds["MJDMEAN"].mean()-coadds["MJDMEAN"]).argmin()]
+            cidx = np.abs(coadds["MJDMEAN"].mean()-coadds["MJDMEAN"]).idxmin()
+            c = coadds.loc[cidx]
 
-            coadds["PX"] = (-(((c["MJDMEAN"]-coadds["MJDMEAN"])/365)*(pmra/1000.))/2.75).round().astype(int)
-            coadds["PY"] = ((((c["MJDMEAN"]-coadds["MJDMEAN"])/365)*(pmdec/1000.))/2.75).round().astype(int)
+            coadds["PX"] = (-(((c["MJDMEAN"]-coadds["MJDMEAN"])/365.25)*(pmra/1000.))/2.75).round().astype(int)
+            coadds["PY"] = ((((c["MJDMEAN"]-coadds["MJDMEAN"])/365.25)*(pmdec/1000.))/2.75).round().astype(int)
+            
+            c0 = coadds.loc[coadds["MJDMEAN"].idxmin()]
 
+            # Project RA and Dec
+            pxc = ((c0["PX"]*2.75)/3600.)/np.cos(np.deg2rad(dec))
+            pyc = (c0["PY"]*2.75)/3600.
+            ra_ = ra-pxc
+            dec_ = dec+pyc
             sol = {"tile":str(coadd_id),
                    "band":int(band),
                    "epochs":[int(x[1])
@@ -772,7 +795,14 @@ class Coadd_Strategy_Page(Resource):
                    "mjdmeans":[float(x)
                                for x in coadds["MJDMEAN"]],
                    "px":[int(x) for x in coadds["PX"]],
-                   "py":[int(x) for x in coadds["PY"]]}
+                   "py":[int(x) for x in coadds["PY"]],
+                   "ra":float(ra_),
+                   "dec":float(dec_),
+            }
+
+            if coadd_mode == "daniella":
+                sol["mods"] = ["d" for x in coadds.index]
+
 
             solutions = [sol]
 
