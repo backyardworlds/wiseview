@@ -58,7 +58,8 @@ PATH = "http://unwise.me/cutout_fits?file_img_m=on&version={version}&ra={ra}&dec
 def convert_img(file_data,color,mode,linear,trimbright):
     img = file_data
     sim = imp.complex(img,mode,linear,trimbright)
-    #sim = skie.rescale_intensity(img,out_range=(0,1))
+    #sim = imp
+    #sim = skie.rescale_intensity(img,out_range=(0,1)) # This OR the one above
     opt_img = skid.img_as_ubyte(sim)
     
     im = ImageOps.invert(Image.fromarray(opt_img)).transpose(Image.FLIP_TOP_BOTTOM)
@@ -223,8 +224,10 @@ def request_tspot_cutout(ra,dec,size,band,epoch,tile):
     return cutout
 
 
-def _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile):
+def _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile,linear,mode,trimbright):
     ims = []
+    negims = []
+    allims = []
     for i in random.sample(range(len(epochs)),len(epochs)):
         e_ = epochs[i]
         
@@ -244,29 +247,88 @@ def _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile):
         if px != 0 or py != 0:
             im = project_im(im,px_,py_)
 
+        allims.append(im)
         if mods is not None and i < len(mods):
-            if "d" in mods:
+            if "d" in mods[i]:
                 # Daniella mode!
                 im = im-np.rot90(im,k=2)
                 # Clip bottom (should do in image_parsing,
                 # but that will take some re-twiddling)
                 im = np.maximum(im,-25)
-            
-        ims.append(im)
+                ims.append(im)
+            elif "s" in mods[i]:
+                negims.append(im)
+            else:
+                ims.append(im)
+        else:
+            ims.append(im)
 
-    return np.average(ims,axis=0)
+    if len(ims) == 0:
+        raise Exception("No positive images")
+    
+    im = np.average(ims,axis=0)
+    allim = np.average(allims,axis=0)
+    
+    if len(negims) > 0:
+        negim = np.average(negims,axis=0)
+
+        #negim = imp.clip(negim,mode,trimbright)
+        #im = imp.clip(im,mode,trimbright)
+
+        #linear = 0.001
+        #negim = imp.complex(negim,mode,linear,trimbright)
+        #im = imp.complex(im,mode,linear,trimbright)
+        #negim = np.clip(negim,im.min(),im.max())
+
+        # Rebase images by full-depth mode
+        negim_ = negim
+        negim_ = negim_ + (np.median(allim)-np.median(negim_))
+        im_ = im
+        im_ = im_ + (np.median(allim)-np.median(im_))
+
+        # Rescale to full-depth mode
+        #negim_ = skie.rescale_intensity(negim_,out_range=(allim.min(),allim.max()))
+        #im_ = skie.rescale_intensity(im_,out_range=(allim.min(),allim.max()))
+
+        # Clip
+        #negim_ = np.clip(negim_,np.percentile(allim,2.5),np.percentile(allim,97.5))
+        #im_ = np.clip(im_,np.percentile(allim,2.5),np.percentile(allim,97.5))
+        
+        #stretch = av.AsinhStretch(linear)
+        #negim_ = skie.rescale_intensity(
+        #    stretch(skie.rescale_intensity(negim,out_range=(0,1))),
+        #    out_range=(negim.min(),negim.max()))
+        #im_ = skie.rescale_intensity(
+        #    stretch(skie.rescale_intensity(im,out_range=(0,1))),
+        #    out_range=(im.min(),im.max()))
+
+        #negim_ = np.clip(negim_,-100,250)
+        #im_ = np.clip(im_,-100,250)
+
+        negim_ = imp.clip(negim_,mode,trimbright)
+        im_ = imp.clip(im_,mode,trimbright)
+        
+    
+        #im = np.clip(im,np.percentile(im,3),np.percentile(im,97))
+        im2 = np.average([im_,-negim_],axis=0)
+        #im = imp.clip(im2,mode,trimbright)
+        #im2 = imp.clip(im,mode,trimbright)
+        #im = np.clip(im2,im.min(),im.max())
+        im = im2
+        
+    return im
 
 
 def get_cutout(ra,dec,size,band,epochs,px,py,mods,
                tile,mode,color,linear,trimbright):
-    cutout = _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile)
+    cutout = _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile,linear,mode,trimbright)
     return convert_img(cutout,color,mode,linear,trimbright),200
 
 
 def get_composite(ra,dec,size,epochs,px,py,mods,tile,mode,color,linear,trimbright):
     """Fetch w1 and w2 images from tspot and build a w1+w2 composite"""
-    w1 = _build_cutout(ra,dec,size,1,epochs,px,py,mods,tile)
-    w2 = _build_cutout(ra,dec,size,2,epochs,px,py,mods,tile)
+    w1 = _build_cutout(ra,dec,size,1,epochs,px,py,mods,tile,linear,mode,trimbright)
+    w2 = _build_cutout(ra,dec,size,2,epochs,px,py,mods,tile,linear,mode,trimbright)
 
     # Normalize to w1
     w2 = w2 + (np.median(w1) - np.median(w2))
@@ -602,7 +664,14 @@ class Coadd_Strategy_Page(Resource):
                                      "window-2.0-year",
                                      "window-2.5-year",
                                      "window-3.0-year",
+                                     "swindow-0.5-year",
+                                     "swindow-1.0-year",
+                                     "swindow-1.5-year",
+                                     "swindow-2.0-year",
+                                     "swindow-2.5-year",
+                                     "swindow-3.0-year",
                                      "pre-post",
+                                     "spre-post",
                                      "parallax-enhancing",
                                      "shift-and-add",
                                      "daniella"))
@@ -712,6 +781,38 @@ class Coadd_Strategy_Page(Resource):
                                    for x in window["MJDMEAN"]]}
                 if len(solutions) == 0 or sol != solutions[-1]:
                     solutions.append(sol)
+
+        elif coadd_mode.startswith("swindow-"):
+            time_bases = {"swindow-0.5-year":274.5,
+                          "swindow-1.0-year":457.5,
+                          "swindow-1.5-year":640.5,
+                          "swindow-2.0-year":823.5,
+                          "swindow-2.5-year":1006.5,
+                          "swindow-3.0-year":1189.5}
+            
+            if coadd_mode not in time_bases:
+                raise Exception("%s invalid coadd_mode"%coadd_mode)
+
+            time_basis = time_bases[coadd_mode]
+            sub = coadds.loc[(coadd_id,slice(None),band),:]
+            for _,coadd in sub.iterrows():
+                # Build window
+                window = sub[abs(sub["MJDMEAN"] - coadd["MJDMEAN"]) <= time_basis]
+                notwindow = sub[~(abs(sub["MJDMEAN"] - coadd["MJDMEAN"]) <= time_basis)]
+                sol = {"tile":str(coadd_id),
+                       "band":int(band),
+                       "epochs":[int(x[1])
+                                 for x in window.index],
+                       "mods":["" for x in window.index],
+                       "mjdmeans":[float(x)
+                                   for x in window["MJDMEAN"]]}
+                sol["epochs"].extend([int(x[1]) for x in notwindow.index])
+                sol["mods"].extend(["s" for x in notwindow.index])
+                sol["mjdmeans"].extend([float(x) for x in notwindow["MJDMEAN"]])
+                
+                if len(solutions) == 0 or sol != solutions[-1]:
+                    solutions.append(sol)
+
         elif coadd_mode == "pre-post":
             mjdlim = 55609.8333333333
 
@@ -728,6 +829,40 @@ class Coadd_Strategy_Page(Resource):
                        "mjdmeans":[float(x)
                                    for x in s["MJDMEAN"]]}
                 solutions.append(sol)
+
+        elif coadd_mode == "spre-post":
+            mjdlim = 55609.8333333333
+
+            sub = coadds.loc[(coadd_id,slice(None),band),:]
+            
+            pre = sub[sub["MJDMEAN"] < mjdlim]
+            post = sub[sub["MJDMEAN"] >= mjdlim]
+
+            epochs = [int(x[1]) for x in pre.index]
+            epochs.extend([int(x[1]) for x in post.index])
+            mods = ["" for x in pre.index]
+            mods.extend(["s" for x in post.index])
+            mjdmeans = [float(x) for x in pre["MJDMEAN"]]
+            mjdmeans.extend([float(x) for x in pre["MJDMEAN"]])
+            solutions.append({"tile":str(coadd_id),
+                              "band":int(band),
+                              "epochs":epochs,
+                              "mods":mods,
+                              "mjdmeans":mjdmeans,
+                              })
+
+            epochs = [int(x[1]) for x in post.index]
+            epochs.extend([int(x[1]) for x in pre.index])
+            mods = ["" for x in post.index]
+            mods.extend(["s" for x in pre.index])
+            mjdmeans = [float(x) for x in post["MJDMEAN"]]
+            mjdmeans.extend([float(x) for x in post["MJDMEAN"]])
+            solutions.append({"tile":str(coadd_id),
+                              "band":int(band),
+                              "epochs":epochs,
+                              "mods":mods,
+                              "mjdmeans":mjdmeans,
+                              })
 
         elif coadd_mode in ("shift-and-add","daniella"):
             if pmra is None or pmdec is None:
@@ -777,7 +912,7 @@ class Gif_Page(Resource):
         parser.add_argument("ra", type=float, required=True)
         parser.add_argument("dec", type=float, required=True)
         parser.add_argument("band", type=int, required=True,
-                            choices=[1,2])
+                            choices=[1,2,3])
         parser.add_argument("coadd_mode", type=str, required=True,
                             choices=("time-resolved",
                                      "parallax-cancelling-forward",
@@ -801,28 +936,60 @@ class Gif_Page(Resource):
         parser.add_argument("zoom",type=float,default=9.0)
         args = parser.parse_args()
 
-        solutions = Coadd_Strategy_Page.coadd_strategy(args.ra,args.dec,args.band,args.coadd_mode)
+        solutions = Coadd_Strategy_Page.coadd_strategy(args.ra,args.dec,
+                                                       2 if args.band == 3 else args.band,
+                                                       args.coadd_mode)
 
         ims = []
         first = True
         for sol in solutions:
             # Relying on it being sorted by epoch
-            cutout = Convert.convert(args.ra,args.dec,(args.size/2.75)+1,args.band,None,sol["epochs"],[],[],
-                                     sol["tile"],args.mode,args.color,args.linear,args.trimbright,0,raw=True)
+            cutout = Convert.convert(args.ra,args.dec,(args.size/2.75)+1,args.band,None,
+                                     sol["epochs"],
+                                     sol["px"] if "px" in sol else [],
+                                     sol["py"] if "py" in sol else [],
+                                     sol["mods"] if "mods" in sol else [],
+                                     sol["tile"],args.mode,args.color,args.linear,args.trimbright,raw=True)
             #sio = StringIO(cutout)
             #sio.seek(0)
             #ims.append(sio)
             
             cutout = np.array(cutout)
+
             # Resize
             cutout = spm.imresize(cutout,args.zoom,interp="nearest")
 
-            if first:
-                cutout = np.pad(cutout,max(int(args.zoom),1),mode="constant",constant_values=cutout.min())
-                first = False
+            # Add a pixel to the edge
+            if len(cutout.shape) == 3:
+                if first:
+                    padded = None
+                    min_ = cutout.min()
+                    for i in xrange(cutout.shape[-1]):
+                        sub = cutout[...,i]
+                        padded_ = np.pad(sub,max(int(args.zoom/3.),1),mode="constant",constant_values=min_)
+                        if padded is None:
+                            padded = np.zeros((padded_.shape[0],padded_.shape[1],cutout.shape[2]),"uint8")
+                        padded[...,i] = padded_
+                    
+                    first = False
+                else:
+                    padded = None
+                    max_ = cutout.max()
+                    for i in xrange(cutout.shape[-1]):
+                        sub = cutout[...,i]
+                        padded_ = np.pad(sub,max(int(args.zoom/3.),1),mode="constant",constant_values=max_)
+                        if padded is None:
+                            padded = np.zeros((padded_.shape[0],padded_.shape[1],cutout.shape[2]),"uint8")
+                        padded[...,i] = padded_
+                cutout = padded
             else:
-                cutout = np.pad(cutout,max(int(args.zoom),1),mode="constant",constant_values=cutout.max())
-            
+                if first:
+                    cutout = np.pad(cutout,max(int(args.zoom/3.),1),mode="constant",constant_values=cutout.min())
+                    first = False
+                else:
+                    cutout = np.pad(cutout,max(int(args.zoom/3.),1),mode="constant",constant_values=cutout.max())
+
+
             ims.append(cutout)
 
         gif = StringIO()

@@ -43,6 +43,11 @@
                 display: block;
                 font-size: 14px;
             }
+            #legacySurvey {
+                display: block;
+                padding: 5px 0px;
+                font-size: 14px;
+            }
             input[type=range] {
             padding: 0px;
             margin-left: 5px;
@@ -87,11 +92,11 @@
             }
             .settingsDiv {
                 overflow-y: auto;
-                height: 30vh;
+                height: 50vh;
             }
             .dataDiv {
                 overflow-y: auto;
-                height: 5vh;
+                height: 10vh;
             }
             .aboutDiv {
                 overflow-y: auto;
@@ -140,6 +145,7 @@
                 this.zoom_output = jQuery("#zoomValue");
                 this.ver_output = jQuery("#verValue");
                 this.canvas = jQuery("#daCanvas");
+                console.log(this.canvas);
                 this.pmra_input = jQuery("#pmraInput");
                 this.pmdec_input = jQuery("#pmdecInput");
                 this.border_input = jQuery("#borderInput");
@@ -237,8 +243,11 @@
                         } else {
                             zs.append(document.createTextNode("None"))
                         }
-                    }
-                )}
+                    })
+                    
+                    jQuery("#legacySurvey")[0].setAttribute("href","http://legacysurvey.org/viewer?ra="+loc_split[0]+"&dec="+loc_split[1]+"&zoom=13&layer=unwise-neo4")
+                    
+                }
 
                 this.fromUrl = function () {
                     var raw = window.location.hash.substr(1);
@@ -247,7 +256,7 @@
                         var split = kv.split("=");
                         map[split[0]] = split[1];
                     });
-                    this.loc_input.val((map.ra || "") + " " + (map.dec || ""));
+                    this.loc_input.val((unescape(map.ra) || "") + " " + ((unescape(map.dec) || "")));
                     this.size_input.val(map.size || 60);
                     this.band_input.val(map.band || 2);
                     this.speed_input.val(map.speed || 500);
@@ -278,7 +287,7 @@
                 };
 
                 this.parseLoc = function () {
-                    var loc_split = /([0-9\.]+).*?([+\-]{0,1}[0-9\.]+)/g.exec(this.loc_input.val());
+                    var loc_split = /([0-9\.]+).*?([+\-]{0,1}[0-9\.]+)/g.exec(unescape(this.loc_input.val()));
                     return [loc_split[1].trim(), loc_split[2].trim()];
                 };
 
@@ -312,7 +321,88 @@
                     if (!isNaN(this.cur_img)) {
                         var image = this.images[this.cur_img];
                         this.context.drawImage(image, 0, 0);
+                        if (this.canvas_mouse.drawing) {
+                            this.context.beginPath();
+                            console.log("Start: "+this.canvas_mouse.startX+" sep: "+(this.canvas_mouse.sep/2)+" tot: "+(this.canvas_mouse.startX-(this.canvas_mouse.sep/2)));
+                            this.context.rect(this.canvas_mouse.startX-this.canvas_mouse.sep,
+                                              this.canvas_mouse.startY-this.canvas_mouse.sep,
+                                              this.canvas_mouse.sep*2,this.canvas_mouse.sep*2);
+                            this.context.lineWidth = 1;
+                            this.context.strokeStyle = "yellow";
+                            this.context.stroke();
+                        }
                     }
+                };
+
+                this.canvas_mouse = { down: false, drawing: false, x:0, y:0, startX: 0, startY: 0, sep: 0};
+
+                this.reset_canvas_mouse = function () {
+                    this.canvas_mouse["down"] = false;
+                    this.canvas_mouse["drawing"] = false;
+                    this.canvas_mouse["x"] = 0;
+                    this.canvas_mouse["y"] = 0;
+                    this.canvas_mouse["startX"] = 0;
+                    this.canvas_mouse["startY"] = 0;
+                    this.canvas_mouse["sep"] = 0;//Number(this.size_input.val); console.log(this.size_input.val());
+                };
+
+                this.update_canvas_mouse = function (evt) {
+                    var canvas = this.canvas[0];
+                    var scaleX = canvas.width / canvas.clientWidth,
+                        scaleY = canvas.height / canvas.clientHeight;
+                    this.canvas_mouse.x = (evt.pageX - (canvas.offsetLeft+canvas.clientLeft)) * scaleX;
+                    this.canvas_mouse.y = (evt.pageY - (canvas.offsetTop+canvas.clientTop)) * scaleY;
+                };
+
+                this.move_down = function (evt) {
+                    var canvas = this.canvas[0];
+                    this.reset_canvas_mouse(evt);
+                    this.update_canvas_mouse(evt);
+                    this.canvas_mouse.startX = this.canvas_mouse.x
+                    this.canvas_mouse.startY = this.canvas_mouse.y
+                    this.canvas_mouse.down = true;
+                };
+
+                this.move_up = function (evt) {
+                    var canvas = this.canvas[0];
+                    this.update_canvas_mouse(evt);
+                    if (this.canvas_mouse.drawing) {
+                        this.move_fov(this.canvas_mouse.sep*2.75*2);
+                    } else {
+                        this.move_fov(this.size_input.val());
+                    }
+                    this.reset_canvas_mouse();
+                };
+
+                this.move_move = function (evt) {
+                    var canvas = this.canvas[0];
+                    this.update_canvas_mouse(evt);
+                    if (this.canvas_mouse.down) {
+                        var sep = Math.sqrt(Math.pow(this.canvas_mouse.x-this.canvas_mouse.startX,2)+Math.pow(this.canvas_mouse.y-this.canvas_mouse.startY,2));
+                        //console.log("Sep:"+sep+" drawing: "+this.canvas_mouse.drawing);
+                        this.canvas_mouse.sep = sep;
+                        if (sep > 4) {
+                            this.canvas_mouse.drawing = true;
+                        }
+                    }
+                    if (this.canvas_mouse.drawing) {
+                        this.draw();
+                    }
+                };
+
+                this.move_fov = function (fov) {
+                    var canvas = this.canvas[0];
+                    var loc = this.parseLoc(),
+                        ra = parseFloat(loc[0]),
+                        dec = parseFloat(loc[1]),
+                        rad = -((((this.canvas_mouse.startX-(canvas.width/2))*2.75)/3600)/(Math.cos(dec*(Math.PI/180)))),
+                        decd = -(((this.canvas_mouse.startY-(canvas.height/2))*2.75)/3600);
+                    
+                    this.loc_input.val(""+(ra+rad)+" "+(dec+decd));
+                    fov = Number(fov).toFixed(0);
+                    if (fov < 6) { fov = 6; }
+                    this.size_input.val(fov);
+                    this.restart()
                 };
 
                 this.frame = function () {
@@ -458,14 +548,18 @@
                     ws.fromUrl();
                 }
 
+                //jQuery("#daCanvas").on("click", ws.move_fov.bind(ws));
+                jQuery("#daCanvas").on("mouseup", ws.move_up.bind(ws));
+                jQuery("#daCanvas").on("mousedown", ws.move_down.bind(ws));
+                jQuery("#daCanvas").on("mousemove", ws.move_move.bind(ws));
                 jQuery(".resetters").on("change", ws.restart.bind(ws));
                 //jQuery(".resetters").on("change", ws.notifygo.bind(ws));
                 jQuery("#speedInput").on('change', ws.updateSpeed.bind(ws));
                 jQuery("#zoomInput").on('change', ws.updateZoom.bind(ws));
                 jQuery("#linearInput").on("mouseup", ws.restart.bind(ws));
-                    jQuery("#trimbrightInput").on("mouseup", ws.restart.bind(ws));
+                jQuery("#trimbrightInput").on("mouseup", ws.restart.bind(ws));
                 jQuery("#linearInput").on("change", ws.updateOtherSliders.bind(ws));
-                    jQuery("#trimbrightInput").on("change", ws.updateOtherSliders.bind(ws));
+                jQuery("#trimbrightInput").on("change", ws.updateOtherSliders.bind(ws));
             });
         </script>
     </head>
@@ -648,6 +742,7 @@
         <hr>
         <div class="dataDiv">
           <div class="row">
+            <a id="legacySurvey" target="_blank" href="http://legacysurvey.org/viewer#NGC%203413">LegacySurvey Sky Viewer</a>
             <label for="zooiSubjects">Nearest Zooniverse Subjects:</label>
             <p style="margin: 0px; padding: 0px;" id="zooiSubjects">...</p>
           </div>

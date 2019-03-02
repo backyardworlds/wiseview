@@ -154,8 +154,7 @@ def _tile_contains_position(idx,ra,dec):
     # Don't return tiles not containing position or
     # with very small cutouts
     if px <= 1 or py <= 1: return None
-
-    return px+py
+    return min(px,py)
 
 
 def get_tiles(ra,dec):
@@ -185,9 +184,10 @@ def get_tiles(ra,dec):
     # how complete the cutout will be in the corners versus edges
     tiles = sorted(tiles,key=lambda x: x[0], reverse=True)
     tiles = [x[1] for x in tiles] # drop "nearest" field
-
+    
     # Extract index rows by coadd_id
     df = tr_index.loc[tiles,:]
+    df = df.reindex(tiles,level=0)
 
     return df
 

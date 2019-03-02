@@ -83,6 +83,16 @@ def simple(arr,linear=0.00001):
     
     return stretched_arr
 
+
+def clip(arr,mode,trimbright):
+    if mode == "fixed":
+        bounds = -trimbright,trimbright
+    else:#if mode == "percent":
+        bounds = np.percentile(arr,100.-trimbright),np.percentile(arr,trimbright)
+    #return skimage.exposure.exposure.rescale_intensity(arr,in_range=bounds,out_range=(0.,1.))
+    return np.clip(arr,bounds[0],bounds[1])
+
+
 def complex(arr,mode,linear=0.00001,trimbright=100.0):
     # shrink
     if mode == "adapt":
