@@ -751,6 +751,7 @@
         <div class="aboutDiv">
           <h1>About</h1>
           <p style="margin-top: 2px;">Images sourced by <a href="http://unwise.me">unWISE</a>[1,2,3] (top) and <a href="https://panstarrs.stsci.edu/">Pan-STARRS</a> (bottom).</p>
+	  <p>See our <a href="https://www.youtube.com/watch?v=23hXbfh1_aA">tutorial video</a> by Guillaume Colin</p>
           <p>unWISE images are then stretched with <a href="http://docs.astropy.org/en/stable/api/astropy.visualization.AsinhStretch.html#astropy.visualization.AsinhStretch">astropy.visualization.AsinhStretch</a>, where the "Linear" slider controls the "a" parameter. "Trim Bright" changes the maximum intensity before stretching. In "percent" mode, "Trim Bright" scales to the "Trim Bright" percentile, whereas "fixed" sets an absolute maximum intensity. For example, "percent" with "99.5" caps the intensity to that of the 99.5th percentile pixel, whereas "fixed" with "1000" caps it at 1000. "adapt" attempts to find good minimum and maximum values automatically, and does not take a "Trim Bright" input.</p>
           <p>To replicate legacy wiseview behavior, use either "fixed" or "percent" (instead of legacy "Brighten"), and set "linear" = 1.</p>
           <p>Band W1 and W2 correspond to WISE bands. "Bands W1+W2" displays a color image where W1 is blue and W2 is red.</p>
