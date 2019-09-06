@@ -93,7 +93,10 @@ def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
 
     # Get content from S3
     sio = StringIO.StringIO()
-    tspot.bucket.download_fileobj(path_,sio)
+    try:
+        tspot.bucket.download_fileobj(path_,sio)
+    except Exception,e:
+        raise Exception("%s %s"%(str(e),path_))
     sio.seek(0)
 
     # Perform cutouts if size is specified
@@ -101,6 +104,33 @@ def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
         im = cutout(sio,ra,dec,size,fits=fits,scamp=scamp,wcs=wcs)
     else:
         im = sio.getvalue()
+
+
+    if covmap:
+        # Build coverage map path
+        path_ = "/".join(
+            (path,
+             "e%03d"%int(epoch_num), # epoch in e### form
+             coadd_id[:3], # first 3 digits of RA
+             coadd_id, # the tile name itself
+             "unwise-%s-w%d-n-m.fits.gz"%(coadd_id,band)))
+
+        # Get content from S3
+        sio = StringIO.StringIO()
+        tspot.bucket.download_fileobj(path_,sio)
+        sio.seek(0)
+        
+        gz = gzip.GzipFile(fileobj=sio,mode="rb").read()
+        
+        # Perform cutouts if size is specified
+        if size is not None:
+            sio = StringIO.StringIO(gz)
+            sio.seek(0)
+            cm = cutout(sio,ra,dec,size,fits=fits,scamp=scamp)
+        else:
+            cm = gz
+            
+        return im,cm
     
     return im
 
