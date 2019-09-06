@@ -295,6 +295,7 @@
                     clearInterval(this.interval);
                     this.images = [];
                     this.cur_img = NaN;
+                    jQuery("#pawnstars").empty();
                 };
 
                 this.advance = function () {
@@ -323,7 +324,7 @@
                         this.context.drawImage(image, 0, 0);
                         if (this.canvas_mouse.drawing) {
                             this.context.beginPath();
-                            console.log("Start: "+this.canvas_mouse.startX+" sep: "+(this.canvas_mouse.sep/2)+" tot: "+(this.canvas_mouse.startX-(this.canvas_mouse.sep/2)));
+                            //console.log("Start: "+this.canvas_mouse.startX+" sep: "+(this.canvas_mouse.sep/2)+" tot: "+(this.canvas_mouse.startX-(this.canvas_mouse.sep/2)));
                             this.context.rect(this.canvas_mouse.startX-this.canvas_mouse.sep,
                                               this.canvas_mouse.startY-this.canvas_mouse.sep,
                                               this.canvas_mouse.sep*2,this.canvas_mouse.sep*2);
@@ -725,6 +726,12 @@
                 <option value="window-2.0-year">window-2.0-year</option>
                 <option value="window-2.5-year">window-2.5-year</option>
                 <option value="window-3.0-year">window-3.0-year</option>
+                <option value="window-0.5-year-parallax-enhancing">window-0.5-year-parallax-enhancing</option>
+                <option value="window-1.0-year-parallax-enhancing">window-1.0-year-parallax-enhancing</option>
+                <option value="window-1.5-year-parallax-enhancing">window-1.5-year-parallax-enhancing</option>
+                <option value="window-2.0-year-parallax-enhancing">window-2.0-year-parallax-enhancing</option>
+                <option value="window-2.5-year-parallax-enhancing">window-2.5-year-parallax-enhancing</option>
+                <option value="window-3.0-year-parallax-enhancing">window-3.0-year-parallax-enhancing</option>
                 <option value="pre-post">pre-post</option>
                 <option value="parallax-enhancing">parallax-enhancing</option>
                 <option value="shift-and-add">shift-and-add</option>
