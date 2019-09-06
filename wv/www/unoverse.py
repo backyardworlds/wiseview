@@ -8,6 +8,7 @@ import urllib
 import subprocess
 import json
 import random
+import pandas as pd
 
 from flask import Flask
 from flask import make_response
@@ -24,6 +25,7 @@ import requests
 # Image processing
 import numpy as np
 import scipy.misc as spm
+import scipy.ndimage as ndim
 import astropy.io.fits as aif
 import skimage.exposure as skie
 import skimage.util.dtype as skid
@@ -140,7 +142,8 @@ def get_unwise_cutout(ra,dec,size,band,version,mode,color,linear,trimbright):
                          trimbright)
         sio = StringIO()
         if color is not None:
-            plt.imsave(sio,im,format="png",cmap=color)
+            plt.imsave(sio,im,vmax=trimbright,
+                       format="png",cmap=color)
         else:
             im.save(sio,format="png")
         converted.append(sio.getvalue())
@@ -214,24 +217,28 @@ def request_tspot_cutout(ra,dec,size,band,epoch,tile):
     key = "%d|%f|%f|%d|%d|True|True"%(epoch,ra,dec,band,size)
     cache_im = uwsgi.cache_get(key,"wvim")
     if cache_im is None:
-        cutout = unwcutout.get_by_tile_epoch(tile,epoch,
-                                             ra,dec,
-                                             band,size=size,
-                                             fits=False)
-        uwsgi.cache_set(key,pickle.dumps(cutout,protocol=0),0,"wvim")
+        im,cm = unwcutout.get_by_tile_epoch(tile,epoch,
+                                            ra,dec,
+                                            band,size=size,
+                                            fits=False,
+                                            covmap=True)
+        uwsgi.cache_set(key,pickle.dumps((im,cm),protocol=0),0,"wvim")
     else:
-        cutout = pickle.loads(cache_im)
-    return cutout
+        im,cm = pickle.loads(cache_im)
+    return im,cm
 
 
 def _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile,linear,mode,trimbright):
     ims = []
+    cms = []
     negims = []
+    negcms = []
     allims = []
+    allcms = []
     for i in random.sample(range(len(epochs)),len(epochs)):
         e_ = epochs[i]
         
-        im = request_tspot_cutout(ra,dec,size,band,e_,tile)
+        im,cm = request_tspot_cutout(ra,dec,size,band,e_,tile)
 
         # TODO: difference imaging
         # issue is the subselection of ims to create background
@@ -246,39 +253,33 @@ def _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile,linear,mode,trimbright
 
         if px != 0 or py != 0:
             im = project_im(im,px_,py_)
+            cm = project_im(cm,px_,py_)
 
+        cm = np.clip(cm,np.finfo(np.float32).eps,None)
+        
         allims.append(im)
+        allcms.append(cm)
         if mods is not None and i < len(mods):
-            if "d" in mods[i]:
-                # Daniella mode!
-                im = im-np.rot90(im,k=2)
-                # Clip bottom (should do in image_parsing,
-                # but that will take some re-twiddling)
-                im = np.maximum(im,-25)
-                ims.append(im)
-            elif "s" in mods[i]:
+            if "s" in mods[i]:
                 negims.append(im)
+                negcms.append(cm)
             else:
                 ims.append(im)
+                cms.append(cm)
         else:
             ims.append(im)
+            cms.append(cm)
 
     if len(ims) == 0:
         raise Exception("No positive images")
-    
-    im = np.average(ims,axis=0)
-    allim = np.average(allims,axis=0)
+
+    im = np.average(ims,weights=cms,axis=0)
+    allim = np.average(allims,weights=allcms,axis=0)
     
     if len(negims) > 0:
-        negim = np.average(negims,axis=0)
-
-        #negim = imp.clip(negim,mode,trimbright)
-        #im = imp.clip(im,mode,trimbright)
-
-        #linear = 0.001
-        #negim = imp.complex(negim,mode,linear,trimbright)
-        #im = imp.complex(im,mode,linear,trimbright)
-        #negim = np.clip(negim,im.min(),im.max())
+        negim = np.average(negims,weights=negcms,axis=0)
+        #negim = ndim.gaussian_filter(negim,sigma=.5)
+        #im = ndim.gaussian_filter(im,sigma=.5)
 
         # Rebase images by full-depth mode
         negim_ = negim
@@ -286,35 +287,13 @@ def _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile,linear,mode,trimbright
         im_ = im
         im_ = im_ + (np.median(allim)-np.median(im_))
 
-        # Rescale to full-depth mode
-        #negim_ = skie.rescale_intensity(negim_,out_range=(allim.min(),allim.max()))
-        #im_ = skie.rescale_intensity(im_,out_range=(allim.min(),allim.max()))
-
-        # Clip
-        #negim_ = np.clip(negim_,np.percentile(allim,2.5),np.percentile(allim,97.5))
-        #im_ = np.clip(im_,np.percentile(allim,2.5),np.percentile(allim,97.5))
-        
-        #stretch = av.AsinhStretch(linear)
-        #negim_ = skie.rescale_intensity(
-        #    stretch(skie.rescale_intensity(negim,out_range=(0,1))),
-        #    out_range=(negim.min(),negim.max()))
-        #im_ = skie.rescale_intensity(
-        #    stretch(skie.rescale_intensity(im,out_range=(0,1))),
-        #    out_range=(im.min(),im.max()))
-
-        #negim_ = np.clip(negim_,-100,250)
-        #im_ = np.clip(im_,-100,250)
-
         negim_ = imp.clip(negim_,mode,trimbright)
         im_ = imp.clip(im_,mode,trimbright)
         
     
-        #im = np.clip(im,np.percentile(im,3),np.percentile(im,97))
         im2 = np.average([im_,-negim_],axis=0)
-        #im = imp.clip(im2,mode,trimbright)
-        #im2 = imp.clip(im,mode,trimbright)
-        #im = np.clip(im2,im.min(),im.max())
         im = im2
+        im = ndim.gaussian_filter(im,sigma=0.75)
         
     return im
 
@@ -410,7 +389,8 @@ class Convert(Resource):
                 
                 sio = StringIO()
                 if color is not None:
-                    plt.imsave(sio,cutout,format="png",cmap=color)
+                    plt.imsave(sio,cutout,
+                               format="png",cmap=color)
                 else:
                     cutout.save(sio,format="png")
                 sio.seek(0)
@@ -664,6 +644,12 @@ class Coadd_Strategy_Page(Resource):
                                      "window-2.0-year",
                                      "window-2.5-year",
                                      "window-3.0-year",
+                                     "window-0.5-year-parallax-enhancing",
+                                     "window-1.0-year-parallax-enhancing",
+                                     "window-1.5-year-parallax-enhancing",
+                                     "window-2.0-year-parallax-enhancing",
+                                     "window-2.5-year-parallax-enhancing",
+                                     "window-3.0-year-parallax-enhancing",
                                      "swindow-0.5-year",
                                      "swindow-1.0-year",
                                      "swindow-1.5-year",
@@ -757,7 +743,7 @@ class Coadd_Strategy_Page(Resource):
                                           for x in backward["MJDMEAN"]],
             })
             
-        elif coadd_mode.startswith("window-"):
+        elif coadd_mode.startswith("window-") and coadd_mode.endswith("-year"):
             time_bases = {"window-0.5-year":274.5,
                           "window-1.0-year":457.5,
                           "window-1.5-year":640.5,
@@ -781,6 +767,46 @@ class Coadd_Strategy_Page(Resource):
                                    for x in window["MJDMEAN"]]}
                 if len(solutions) == 0 or sol != solutions[-1]:
                     solutions.append(sol)
+
+        elif coadd_mode.startswith("window-") and coadd_mode.endswith("-parallax-enhancing"):
+            coadd_mode_time = coadd_mode[:coadd_mode.rfind("-parallax")]
+            time_bases = {"window-0.5-year":274.5,
+                          "window-1.0-year":457.5,
+                          "window-1.5-year":640.5,
+                          "window-2.0-year":823.5,
+                          "window-2.5-year":1006.5,
+                          "window-3.0-year":1189.5}
+            
+            if coadd_mode_time not in time_bases:
+                raise Exception("%s invalid coadd_mode"%coadd_mode)
+
+            time_basis = time_bases[coadd_mode_time]
+            #sub = coadds.loc[(coadd_id,slice(None),band),:]
+            sub = fwd(coadds,coadd_id,band,fwd=1)
+            for _,coadd in sub.iterrows():
+                # Build window
+                window = sub[abs(sub["MJDMEAN"] - coadd["MJDMEAN"]) <= time_basis]
+                sol = {"tile":str(coadd_id),
+                       "band":int(band),
+                       "epochs":[int(x[1])
+                                 for x in window.index],
+                       "mjdmeans":[float(x)
+                                   for x in window["MJDMEAN"]]}
+                if len(solutions) == 0 or sol != solutions[-1]:
+                    solutions.append(sol)
+            sub = fwd(coadds,coadd_id,band,fwd=0)
+            for _,coadd in sub.iterrows():
+                # Build window
+                window = sub[abs(sub["MJDMEAN"] - coadd["MJDMEAN"]) <= time_basis]
+                sol = {"tile":str(coadd_id),
+                       "band":int(band),
+                       "epochs":[int(x[1])
+                                 for x in window.index],
+                       "mjdmeans":[float(x)
+                                   for x in window["MJDMEAN"]]}
+                if len(solutions) == 0 or sol != solutions[-1]:
+                    solutions.append(sol)
+                
 
         elif coadd_mode.startswith("swindow-"):
             time_bases = {"swindow-0.5-year":274.5,
@@ -923,7 +949,20 @@ class Gif_Page(Resource):
                                      "window-2.0-year",
                                      "window-2.5-year",
                                      "window-3.0-year",
+                                     "window-0.5-year-parallax-enhancing",
+                                     "window-1.0-year-parallax-enhancing",
+                                     "window-1.5-year-parallax-enhancing",
+                                     "window-2.0-year-parallax-enhancing",
+                                     "window-2.5-year-parallax-enhancing",
+                                     "window-3.0-year-parallax-enhancing",
+                                     "swindow-0.5-year",
+                                     "swindow-1.0-year",
+                                     "swindow-1.5-year",
+                                     "swindow-2.0-year",
+                                     "swindow-2.5-year",
+                                     "swindow-3.0-year",
                                      "pre-post",
+                                     "spre-post",
                                      "parallax-enhancing"))
         parser.add_argument("size", type=int, default=120)
         parser.add_argument("mode", type=str, default="adapt",
