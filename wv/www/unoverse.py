@@ -142,7 +142,7 @@ def get_unwise_cutout(ra,dec,size,band,version,mode,color,linear,trimbright):
                          trimbright)
         sio = StringIO()
         if color is not None:
-            plt.imsave(sio,im,vmax=trimbright,
+            plt.imsave(sio,im,#vmax=trimbright,
                        format="png",cmap=color)
         else:
             im.save(sio,format="png")
