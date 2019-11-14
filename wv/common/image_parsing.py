@@ -98,25 +98,19 @@ def complex(arr,mode,linear=0.00001,trimbright=100.0):
     if mode == "adapt":
         bounds = shrink(arr)
     elif mode == "percent":
-        bounds = np.min(arr),np.percentile(arr,trimbright)
+        bounds = max(np.min(arr),-250.),np.percentile(arr,trimbright)
     elif mode == "fixed":
-        bounds = np.min(arr),trimbright
+        bounds = max(np.min(arr),-250.),trimbright
     else:
         raise Exception("Mode %s not supported"%mode)
 
     # Rescale arr to 0,1
     arr = skimage.exposure.exposure.rescale_intensity(arr,in_range=bounds,out_range=(0,1))
-
-    # Remove hot pixels
-    #hot,arr = find_outlier_pixels(arr,tolerance=10)
     
     # Asinh stretch arr
     stretch = av.AsinhStretch(linear)
     arr = stretch(arr)
     
-    # Remove pixels again
-    #hot,arr = find_outlier_pixels(arr,tolerance=3)
-
     # floating point stuff can bump values outside 0,1. re-force:
     arr = skimage.exposure.exposure.rescale_intensity(arr,out_range=(0,1))
     
