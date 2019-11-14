@@ -38,6 +38,7 @@ def cutout(fitsfileobj,ra,dec,size,fits=False,scamp=None,
     cut = hdul[0].data[max(bot,0):min(int(py)+int(size/2)+1,2048),
                        max(left,0):min(int(px)+int(size/2)+1,2048)]
     
+    
     # Convert to fits
     if fits:
         cutf = aif.PrimaryHDU(cut,header=hdul[0].header)

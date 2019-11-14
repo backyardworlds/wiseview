@@ -1,0 +1,214 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    background-color: black;
+    color: white;
+    height: 100vh;
+}
+canvas {
+    image-rendering: optimizeSpeed;
+    image-rendering: -moz-crisp-edges;         
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: -o-crisp-edges;           
+    image-rendering: pixelated;    
+    -ms-interpolation-mode: nearest-neighbor;  
+}
+a:link {
+    color: white
+}
+a:visited {
+    color: grey
+}
+hr { 
+    margin: 5px 0;
+    background-color: #777; 
+    height: 1px; 
+    border: 0; 
+}
+h1 {
+    margin-top: 0px;
+    margin-bottom: 0px;
+    padding: 0px 10px;
+    font-size: 18px;
+}
+p {
+    font-size: 12px;
+    padding: 0px 10px;
+}
+label {
+    display: block;
+    font-size: 14px;
+}
+#legacySurvey {
+    display: block;
+    padding: 5px 0px;
+    font-size: 14px;
+}
+input[type=range] {
+    padding: 0px;
+    margin-left: 5px;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    width:220px;
+}
+input {
+    margin: 0px 5px;
+}
+#trimbrightInput {
+    padding: 0px;
+    margin-left: 5px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    width:220px;
+}
+#diffbrightInput {
+    padding: 0px;
+    margin-left: 5px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    width:220px;
+}
+#linearInput {
+    padding: 0px;
+    margin-left: 5px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    width:220px;
+}
+#zoomInput {
+    padding: 0px;
+    margin-left: 5px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    width:220px;
+}
+#speedInput {
+    padding: 0px;
+    margin-left: 5px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    width:220px;
+}
+#windowInput {
+    padding: 0px;
+    margin-left: 5px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    width:220px;
+}
+#nav-left {
+    padding-top: 5px;
+    background-color: #383838;
+    position: fixed;
+    height: 100vh;
+    width: 260px;
+}
+#epoch-legend {
+    float: left;
+    margin-top: 0;
+    margin-left: 260px;
+    padding-top: 0;
+    padding-left: 0;
+    background-color: black;
+    width: 20px;
+    height: 100vh;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-family: "Lucida Console";
+}
+#image-field {
+    float: left
+    margin-top: 0px;
+    margin-left: 280px;
+    padding-top: 0px;
+    padding-left: 0px;
+    background-color: black;
+}
+#nav-left + div + xasdasdasd {
+    padding-left: 310px;
+    height: 100vh;
+}
+#tabs {
+    height: 5%;
+    backgound: #888888;
+}
+#tabs button {
+    float: left;
+    height: 100%;
+    background: #999999;
+    margin: 0;
+    border: none;
+    color: white;
+    outline: 0;
+}
+#tabs button.inactive{
+    background: #777777;
+}
+
+#tabs button:hover, #tabs button.inactive:hover {
+    color: black;
+    outline: none;
+}
+.tabSettingsDiv {
+    overflow-y: auto;
+    height: 90%;
+}
+.tabLinksDiv {
+    overflow-y: auto;
+    height: 10vh;
+}
+.tabAboutDiv {
+    overflow-y: auto;
+    height: 60vh;
+}
+.row {
+    padding-left: 10px;
+    padding-top: 3px;
+    width: 250;
+}
+.sliderrow {
+    margin-top: 0px;
+    padding-top: 3px;
+    padding-left: 10px;
+    width: 250;
+}
+.inline {
+    float: left;
+    margin-right: 10px;
+}
+#locInput {
+    width: 215px;
+}
+#sizeInput {
+    width: 40px;
+}
+#bandInput {
+    width: 30%;
+}
+#colorInput {
+    width: 30%;
+}
+#modeInput {
+    width: 25%;
+}
+#verValue {
+    margin: 0;
+    font-size: 2em;
+    font-weight: bold;
+}
+#weakButtons {
+    margin-top: 15px;
+    margin-bottom: 10px;
+    margin-left: 3px;
+}
+.weakButt {
+    margin: 0;
+    width: 32%;
+    outline: 0;
+}
+.tabBody {
+    float: top;
+    overflow-y: auto;
+    height: 90%;
+    border-top: 2px solid #999999;
+}

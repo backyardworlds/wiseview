@@ -255,6 +255,7 @@ def _build_cutout(ra,dec,size,band,epochs,px,py,mods,tile,linear,mode,trimbright
             im = project_im(im,px_,py_)
             cm = project_im(cm,px_,py_)
 
+        # Prevent 0's in averaging by changing 0's to epsilon
         cm = np.clip(cm,np.finfo(np.float32).eps,None)
         
         allims.append(im)
@@ -483,6 +484,14 @@ class Search_Page(Resource):
 api.add_resource(Search_Page, "/wiseview")
 
 
+class SearchV2_Page(Resource):
+    def get(self):
+        return make_response(render_template("flash2.html"))
+
+
+api.add_resource(SearchV2_Page, "/wiseview-v2")
+
+
 
 class Xref_Page(Resource):
     def get(self):
@@ -561,28 +570,47 @@ class Cutout_Page(Resource):
         parser.add_argument("size", type=int, required=True)
         parser.add_argument("band", type=int, choices=(1,2), required=True)
         parser.add_argument("epoch", type=int, required=True)
+        parser.add_argument("covmap", type=bool, required=False, default=False)
         args = parser.parse_args()
 
         coadds = unwtiles.get_tiles(args.ra,args.dec).loc[(slice(None),
                                                            args.epoch,
                                                            args.band),:]
+
+        if len(coadds) == 0:
+            return "unWISE data not available for parameters", 404
+        
         # Take the first (should be closest, by sort?)
         coadd = coadds.iloc[0,:]
         coadd_id,epoch,band = coadd.name
             
 
         # Get cutout
-        cutout = unwcutout.get_by_tile_epoch(
-            coadd_id,
-            epoch,args.ra,args.dec,
-            band,size=args.size,
-            fits=True,
-            # TODO: FIX FOR SCAMP
+        if args.covmap:
+            im,cm = unwcutout.get_by_tile_epoch(
+                coadd_id,
+                epoch,args.ra,args.dec,
+                band,size=args.size,
+                fits=True,
+                covmap=True
             )
-            #scamp=unwtiles.array_to_cards(e))
+            im = aif.open(StringIO(im))
+            cm = aif.open(StringIO(cm))
+            im = aif.PrimaryHDU(im[0].data,header=im[0].header)
+            cm = aif.ImageHDU(cm[0].data,header=cm[0].header)
+            sio = StringIO()
+            aif.HDUList([im,cm]).writeto(sio)
+            sio.seek(0)
+        else:
+            cutout = unwcutout.get_by_tile_epoch(
+                coadd_id,
+                epoch,args.ra,args.dec,
+                band,size=args.size,
+                fits=True,
+            )
         
-        sio = StringIO(cutout)
-        sio.seek(0)
+            sio = StringIO(cutout)
+            sio.seek(0)
         
         return send_file(sio,"application/binary")
         
