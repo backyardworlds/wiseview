@@ -541,7 +541,11 @@ function WiseSwapper () {
 	} else {
             this.loc_input.val(unescape(map.ra) + " " + unescape(map.dec));
 	}
+	if (map.size > 2000) {
+	    map.size = 2000;
+	}
         this.size_input.val(map.size || 176);
+	
         this.band_input.val(map.band || 2);
         this.update_speed_input(Number(map.speed) || 500);
         //this.color_input.val(map.color || "gray");
@@ -1386,6 +1390,11 @@ jQuery(function () {
     
     ws.fromUrl();
 
+    ws.size_input.on("change", function (evt) {
+	var v = ws.size_input.val();
+	if (v > 2000) {
+	    jQuery("#"+evt.target.id).val(2000);
+	}}.bind(ws));
     jQuery("#daCanvas").on("mouseup", ws.move_up.bind(ws));
     jQuery("#daCanvas").on("mousedown", ws.move_down.bind(ws));
     jQuery("#daCanvas").on("mousemove", ws.move_move.bind(ws));
