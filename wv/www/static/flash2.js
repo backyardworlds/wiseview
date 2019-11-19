@@ -340,9 +340,12 @@ function WiseSwapper () {
     };
 
 
-    this.buildUrl = function (ra, dec, size = null) {
+    this.buildUrl = function (ra, dec, size = null, zoom = null) {
 	if (size === null) {
-	    size = this.size_input.val()
+	    size = this.size_input.val();
+	}
+	if (zoom === null) {
+	    zoom = this.zoom_input.slider("option","value");
 	}
         var args = {
 	    ra: ra,
@@ -357,7 +360,7 @@ function WiseSwapper () {
 	    window: this.window_input.slider("option","value"),
 	    linear: this.linear_input.slider("option","value"),
 	    color: this.color_input.val(),
-	    zoom: this.zoom_input.slider("option","value"),
+	    zoom: zoom,
 	    border: this.border_input.prop("checked") ? 1 : 0,
 	    adv: this.adv_input.prop("checked") ? 1 : 0,
 	    invert: this.invert_input.prop("checked") ? 1 : 0,
@@ -458,9 +461,11 @@ function WiseSwapper () {
 	    }
         })
 
-	// Build link to legacysurvey viewer
-        jQuery("#legacySurvey")[0].setAttribute("href","http://legacysurvey.org/viewer?ra="+loc_split[0]+"&dec="+loc_split[1]+"&zoom=13&layer=unwise-neo4")
-	jQuery("#pawnstarsLink")[0].setAttribute("href","https://ps1images.stsci.edu/cgi-bin/ps1cutouts?pos="+loc_split[0]+"+"+loc_split[1]+"&filter=color&filter=g&filter=r&filter=i&filter=z&filter=y&filetypes=stack&auxiliary=data&size=240&output_size=0&verbose=0&autoscale=99.500000&catlist=")
+	// Build links
+        jQuery("#legacySurvey")[0].setAttribute("href","http://legacysurvey.org/viewer?ra="+loc_split[0]+"&dec="+loc_split[1]+"&zoom=13&layer=unwise-neo4");
+	jQuery("#pawnstarsLink")[0].setAttribute("href","https://ps1images.stsci.edu/cgi-bin/ps1cutouts?pos="+loc_split[0]+"+"+loc_split[1]+"&filter=color&filter=g&filter=r&filter=i&filter=z&filter=y&filetypes=stack&auxiliary=data&size=240&output_size=0&verbose=0&autoscale=99.500000&catlist=");
+	jQuery("#simbad")[0].setAttribute("href","http://simbad.u-strasbg.fr/simbad/sim-coo?Coord="+loc_split[0]+"%20"+loc_split[1]+"&Radius=10&Radius.unit=arcsec&coodisp1=d2&list.pmsel=on&list.plxsel=on&list.rvsel=on&list.bibsel=off&list.notesel=off&output.format=HTML");
+	jQuery("#vizier")[0].setAttribute("href","http://vizier.u-strasbg.fr/viz-bin/VizieR?-c="+loc_split[0]+"%20"+loc_split[1]+"&-c.rs=10&-out.add=_r&-sort=_r");
         
     }
 
@@ -723,14 +728,16 @@ function WiseSwapper () {
 
     
     this.new_fov = function (fov) {
-        var pos = this.__new_pos();
+        var pos = this.__new_pos(),
+	    current_zoom = this.zoom_input.slider("option","value"),
+	    current_fov = this.size_input.val();
 	
         fov = Number(fov).toFixed(0);
         if (fov < 6) {
 	    fov = 6;
 	}
 
-	window.open("/wiseview-v2#"+this.buildUrl(pos.ra,pos.dec,size=fov));
+	window.open("/wiseview-v2#"+this.buildUrl(pos.ra,pos.dec,size=fov,zoom=(current_fov*current_zoom)/fov));
     };
 
 
@@ -754,121 +761,92 @@ function WiseSwapper () {
     };
 
 
-    this.get_cutouts = function (ra,dec,size,band,epoch) {
-	if (this.cutout_states[band] < 1) {
-	    // Set state to started and increment workers
-	    this.cutout_states[band] = 1;
-	} else if (this.cutout_states[band] > 1) {
-	    // Error or already done... don't bother fetch cutout
-	    return;
-	}
+    this.get_cutouts = function (ra,dec,size,band) {
+	var bound_band = band;
+	console.log("Downloading and parsing unWISE FITS cutouts")
+	jQuery.getJSON(
+	    "/tiles", {"ra": ra, "dec": dec},
+	    function (response) {
+		var tile = response["tiles"][0];
 
-	if (this.cutouts[band].length >= epoch+1) {
-	    // This cutout already queued
-	    return;
-	}
-
-	// Expand cutouts array to necessary size
-	while (this.cutouts[band].length < epoch+1) {
-	    this.cutouts[band].push(null);
-	}
-	
-	this.cutout_workers[band] += 2; // 1 for cutout, 1 for covmap
-	
-	var that = this;
-
-	var cleanup_cutout = function () {
-	    that.cutout_workers[band] -= 1;
-	    if (that.cutout_workers[band] == 0) {
-		that.cutout_states[band] = 2;
-		
-		// Clean up extra entries in cutouts
-		while (that.cutouts[band].length > 0
-		       && that.cutouts[band][that.cutouts[band].length-1] === null) {
-		    that.cutouts[band].pop();
-		}
-		
-		var global_band = that.band_input.val();
-		if (global_band == band
-		    || that.cutout_states[global_band-band] == 2) {
-		    // If we're the only band, or the other band is done:
+		// Get all the cutouts
+		var promises = [];
+		for (var e = 0; e < tile["epochs"].length; e++) {
+		    var meta = tile["epochs"][e],
+			band = Number(bound_band),
+			epoch_ = Number(meta["epoch"]),
+			band_ = Number(meta["band"]);
+		    if ((band_ & band) == 0) {
+			// If not doing this band, return
+			continue;
+		    }
+		    for (var i = that.cutouts[band_].length-1; i < epoch_; i++) {
+			that.cutouts[band_].push(null);
+		    }
 		    
-		    // Update UI elements w/ dynamic components derived from images
-		    // Find first and last mjdmins
-		    var firstmjdmin = lastmjdmin = mjdmin = that.headers[band][0].cards.MJDMIN.value;
-		    for (var epoch_ = 1; epoch_ < that.headers[band].length; epoch_++) {
-			var mjdmin = that.headers[band][epoch_].cards.MJDMIN.value;
-			if (mjdmin < firstmjdmin) {
-			    firstmjdmin = mjdmin;
+		    promises.push(new Promise(function(res,rej) {
+			var your_epoch_ = epoch_,
+			    your_band_ = band_;
+			jQuery.ajax({
+			    url: "https://n7z4i9pzx8.execute-api.us-west-2.amazonaws.com/prod/cutout",
+			    data: { coadd_id: tile["coadd_id"], ra: ra, dec: dec, px: tile["px"], py: tile["py"],
+				    size: size, epoch: your_epoch_, band: your_band_, covmap: true},
+			    //xhrFields: { responseType: "arrayBuffer" },
+			    //headers: { "Access-Control-Allow-Origin": "*" },
+			    success: function (buf) {
+				var shit = atob(buf),
+				    js_is_embarassing = new Uint8Array(shit.length);
+				for (var i = 0; i < shit.length; i++) {
+				    js_is_embarassing[i] = shit.charCodeAt(i);
+				}
+				shit = new Blob([js_is_embarassing], {type: "application/octet-stream"});
+				new astro.FITS(shit, function () {
+				    hdim = this.getHDU(0)
+				    hdcm = this.getHDU(1)
+				    
+				    // Assign header to header array
+				    that.headers[your_band_][your_epoch_] = hdim.header;
+
+				    var p1 = new Promise(function (resp1,rejp1) {
+					// Assign fetched cutout to cutouts array
+					hdim.data.getFrame(0, function (arr) {
+					    cards = that.headers[your_band_][your_epoch_].cards;
+					    that.cutouts[your_band_][your_epoch_] = nj.float32(arr).reshape(cards.NAXIS2.value,cards.NAXIS1.value);
+					    resp1();
+					});
+				    }), p2 = new Promise(function (resp2,rejp2) {
+					// coverage maps
+					hdcm.data.getFrame(0, function (arr) {
+					    cards = that.headers[your_band_][your_epoch_].cards;
+					    var zz = nj.float32(arr).reshape(cards.NAXIS2.value,cards.NAXIS1.value);
+					    that.covmaps[your_band_][your_epoch_] = zz;
+					    resp2();
+					});
+				    });
+				    Promise.all([p1,p2]).then(function () { res(); });
+				});
+			    }});
+		    }));
+		}
+		Promise.all(promises).then(function () {
+		    var lastmjdmin = null, firstmjdmin = null;
+		    for (var e = 0; e < tile["epochs"].length; e++) {
+			var meta = tile["epochs"][e];
+			if (lastmjdmin === null || Number(meta["mjdmean"]) > lastmjdmin) {
+			    lastmjdmin = Number(meta["mjdmean"]);
 			}
-			if (mjdmin > lastmjdmin) {
-			    lastmjdmin = mjdmin;
+			if (firstmjdmin === null || Number(meta["mjdmean"]) < firstmjdmin) {
+			    firstmjdmin = Number(meta["mjdmean"]);
 			}
 		    }
+		    
 		    that.updateWindowLimits((lastmjdmin-firstmjdmin)/365.25);
 		    
 		    // make some images
 		    that.make_images();
-		}
-	    }
-	}
-	
-	// Fetch cutouts for the given band until none left
-	args = {
-	    ra: ra,
-	    dec: dec,
-	    size: size,
-	    band: band,
-	    epoch: epoch,
-	    covmap: true,
-	};
-	
-	jQuery.ajax({
-	    url: "/cutout",
-	    data: args,
-	    xhrFields: { responseType: "blob" },
-	    success: function (response) {
-		new astro.FITS(response, function () {
-		    hdim = this.getHDU(0)
-		    hdcm = this.getHDU(1)
-
-		    // Assign header to header array
-		    that.headers[band][epoch] = hdim.header;
-		    
-		    // Assign fetched cutout to cutouts array
-		    hdim.data.getFrame(0, function (arr) {
-			cards = that.headers[band][epoch].cards
-			that.cutouts[band][epoch] = nj.float32(arr).reshape(cards.NAXIS2.value,cards.NAXIS1.value);
-			cleanup_cutout();
-		    });
-
-		    // coverage maps
-		    hdcm.data.getFrame(0, function (arr) {
-			cards = that.headers[band][epoch].cards
-			var zz = nj.float32(arr).reshape(cards.NAXIS2.value,cards.NAXIS1.value);
-			/*
-			for (var j = 0; j < zz.selection.data.length; j++) {
-			    if (zz.selection.data[j] <= 2) {
-				zz.selection.data[j] = 0;
-			    }
-			}*/
-			that.covmaps[band][epoch] = zz
-			
-			cleanup_cutout();
-		    });
 		});
-		
-		// Queue next cutouts
-		for (var i = Math.max(epoch+1,that.cutouts[band].length); i < epoch + 16; i++) {
-		    that.get_cutouts(ra,dec,size,band,i);
-		}
-	    },
-	    error: function (a,b,c) {
-		cleanup_cutout();
-		cleanup_cutout();
 	    }
-	})
-		    
+	);
     };
 
     
@@ -1216,10 +1194,11 @@ function WiseSwapper () {
 		}
 		w1_meanmean = Math.max(w1_meanmean / this.cutouts[1].length,250.0);
 	    }
-
+	    console.log("Building W1 meta coadds")
 	    w1_ims = this.__make_images_inner(range,1,scandir,neowise,diff,unique,outer,
 					      guess ? -50.0 : user_mindiff,
 					      guess ? w1_meanmean*2.0 : user_maxdiff);
+	    console.log("Clipping and stretching W1 meta coadds")
 	    w1 = this.trim_and_normalize(w1_ims,
 					 guess ? -w1_meanmean : user_minbright,
 					 guess ? w1_meanmean : user_maxbright,
@@ -1247,9 +1226,11 @@ function WiseSwapper () {
 		w2_meanmean = Math.max(w2_meanmean / this.cutouts[2].length,250.0);
 	    }
 
+	    console.log("Building W2 meta coadds")
 	    w2_ims = this.__make_images_inner(range,2,scandir,neowise,diff,unique,outer,
 					      guess ? -50.0 : user_mindiff,
 					      guess ? w2_meanmean*2.0 : user_maxdiff);
+	    console.log("Clipping and stretching W2 meta coadds")
 	    w2 = this.trim_and_normalize(w2_ims,
 					 guess ? -w2_meanmean : user_minbright,
 					 guess ? w2_meanmean : user_maxbright,
@@ -1267,8 +1248,12 @@ function WiseSwapper () {
 	    : w1_meanmean;
 	
 
-	if (diff) { minmin = Math.min(minmin,-maxmax); }
+	if (diff) {
+	    console.log("Difference imaging")
+	    minmin = Math.min(minmin,-maxmax);
+	}
 	
+	console.log("Packing meta coadds into canvas frames")
 	// Set min/max to image min/max
 	this.trimbright.update_limits(minmin,maxmax);
 	// Set value low/high to inner of settings and image min/max
@@ -1305,20 +1290,35 @@ function WiseSwapper () {
 	this.updateMjds();
 	this.updateEpochs();
         this.updateZoom();
-	jQuery.unblockUI();
+	this.unblock();
     }
 
     
     this.notifygo = function () { console.log("Fired input changed"); }
 
+    this.block = function() {
+	jQuery("#nav-left").block({message: null, fadein: 0, fadeout: 0})
+	jQuery("#image").block({message: null, fadein: 0, fadeout: 0})
+    };
+    
+    this.unblock = function() {
+	jQuery("#nav-left").unblock({message: null, fadein: 0, fadeout: 0})
+	jQuery("#image").unblock({message: null, fadein: 0, fadeout: 0})
+    };
     
     this.restart = function () {
 	// Lock UI
 	//jQuery("#settingsDiv").block({message: null})
-	jQuery.blockUI({message: null});
-	this.updateUrl();
+	//jQuery.blockUI({message: null, fadein: 0, fadeout: 0});
+	//jQuery("#nav-left").block({message: null})
+	this.block();
         this.reset();
         var loc_split = this.parseLoc();
+	if (loc_split === null) {
+	    this.unblock();
+	    return;
+	}
+	this.updateUrl();
         
         var that = this;
 
@@ -1340,12 +1340,7 @@ function WiseSwapper () {
 	    this.diffbright.disable();
 	}
 
-	if (band&1) {
-	    this.get_cutouts(ra,dec,size,1,0);
-	}
-	if (band&2) {
-	    this.get_cutouts(ra,dec,size,2,0);
-	}
+	this.get_cutouts(ra,dec,size,band);
 
 	// hide/show advanced settings
 	if (this.adv_input.prop("checked")) {
