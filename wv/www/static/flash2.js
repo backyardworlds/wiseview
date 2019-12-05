@@ -11,6 +11,11 @@ function arr_flat(arr) {
 }
 
 
+function arr_mean(arr) {
+    return arr.reduce((acc, val) => acc+val) / arr.length
+}
+
+
 function median(arr) {
     const mid = Math.floor(arr.length / 2),
 	  nums = [...arr].sort((a, b) => a - b);
@@ -194,11 +199,20 @@ function WiseSwapper () {
 	    1: [],
 	    2: []
 	};
+	this.global_mjds = [];
 	this.window_mjds = {
 	    1: [],
 	    2: []
 	};
 	this.cutouts = {
+	    1: [],
+	    2: []
+	};
+	this.pos_ims = {
+	    1: [],
+	    2: []
+	};
+	this.neg_ims = {
 	    1: [],
 	    2: []
 	};
@@ -211,22 +225,8 @@ function WiseSwapper () {
 	    1: [],
 	    2: []
 	};
-	
-	this.cutout_states = {
-	    // 0 = not started
-	    // 1 = started
-	    // 2 = done
-	    // 3 = error
-	    1: 0,
-	    2: 0
-	};
-	
-	this.cutout_workers = {
-	    // Number of workers currently running
-	    1: 0,
-	    2: 0
-	};
-	
+	this.overlays = {};
+	this.overlays_enable = {};
 	// Mouse state tracking within canvas
 	this.canvas_mouse = {
 	    down: false,
@@ -238,8 +238,6 @@ function WiseSwapper () {
     };
 
     this.reset_locals()
-
-    this.full_depth_versions = ["allwise", "neo1", "neo2", "neo3"];
 
     // UI Elements
     this.container = jQuery("#image");
@@ -284,6 +282,26 @@ function WiseSwapper () {
 	this.window_input.slider("option","value",val);
 	jQuery("#windowValue").text(val.toFixed(2));
     };
+
+    // Make the window slider element
+    this.diff_window_input = jQuery("#diffWindowInput");
+    this.diff_window_input.slider({
+	min: 0.0,
+	max: 10.0,
+	value: 0.0,
+	slide: function(event, ui) {
+	    jQuery("#diffWindowValue").text(ui.value.toFixed(2));
+	}
+    });
+    this.updateDiffWindowLimits = function (max) {
+	this.diff_window_input.slider("option","max",max);
+	this.diff_window_input.slider("option","step",max/1000.0);
+    };
+    this.updateDiffWindowValue = function (val) {
+	this.diff_window_input.slider("option","value",val);
+	jQuery("#diffWindowValue").text(val.toFixed(2));
+    };
+
         
     this.color_input = jQuery("#colorInput");
 
@@ -320,18 +338,23 @@ function WiseSwapper () {
     
     this.ver_output = jQuery("#verValue");
     this.canvas = jQuery("#daCanvas");
-    this.pmra_input = jQuery("#pmraInput");
-    this.pmdec_input = jQuery("#pmdecInput");
+    this.context = this.canvas.get(0).getContext("2d");
+    this.over_canvas = jQuery("#overlayCanvas");
+    this.over_context = this.over_canvas.get(0).getContext("2d");
     this.border_input = jQuery("#borderInput");
+    this.gaia_input = jQuery("#gaiaInput");
     this.adv_input = jQuery("#advInput");
     this.invert_input = jQuery("#invertInput");
     this.scandir_input = jQuery("#scandirInput");
     this.neowise_only_input = jQuery("#neowiseOnlyInput");
     this.diff_input = jQuery("#diffInput");
-    this.guess_bright_input = jQuery("#guessBrightInput");
+    this.manual_bright_input = jQuery("#manualBrightInput");
     this.outer_epochs_input = jQuery("#outerEpochsInput");
     this.unique_windows_input = jQuery("#uniqueWindowInput");
-    this.context = this.canvas.get(0).getContext("2d");
+    this.reregister_input = jQuery("#reregisterInput");
+    this.shift_input = jQuery("#shiftInput");
+    this.pmra_input = jQuery("#pmraInput");
+    this.pmdec_input = jQuery("#pmdecInput");
 
     this.updateSpeed = function () {
         clearInterval(this.interval);
@@ -340,12 +363,18 @@ function WiseSwapper () {
     };
 
 
-    this.buildUrl = function (ra, dec, size = null, zoom = null) {
+    this.buildUrl = function (ra, dec, size=null, zoom=null, diff=null, manual_bright=null) {
 	if (size === null) {
 	    size = this.size_input.val();
 	}
 	if (zoom === null) {
 	    zoom = this.zoom_input.slider("option","value");
+	}
+	if (diff === null) {
+	    diff = this.diff_input.prop("checked") ? 1 : 0;
+	}
+	if (manual_bright === null) {
+	    manual_bright = this.manual_bright_input.prop("checked") ? 1 : 0;
 	}
         var args = {
 	    ra: ra,
@@ -358,18 +387,24 @@ function WiseSwapper () {
 	    mindiff: symexp10(this.diffbright.low()).toFixed(4),
 	    maxdiff: symexp10(this.diffbright.high()).toFixed(4),
 	    window: this.window_input.slider("option","value"),
+	    diff_window: this.diff_window_input.slider("option","value"),
 	    linear: this.linear_input.slider("option","value"),
 	    color: this.color_input.val(),
 	    zoom: zoom,
 	    border: this.border_input.prop("checked") ? 1 : 0,
+	    gaia: this.gaia_input.prop("checked") ? 1 : 0,
 	    adv: this.adv_input.prop("checked") ? 1 : 0,
 	    invert: this.invert_input.prop("checked") ? 1 : 0,
 	    scandir: this.scandir_input.prop("checked") ? 1 : 0,
 	    neowise: this.neowise_only_input.prop("checked") ? 1 : 0,
-	    diff: this.diff_input.prop("checked") ? 1 : 0,
-	    guess_bright: this.guess_bright_input.prop("checked") ? 1 : 0,
+	    diff: diff,
+	    manual_bright: manual_bright,
 	    outer_epochs: this.outer_epochs_input.prop("checked") ? 1 : 0,
 	    unique_window: this.unique_windows_input.prop("checked") ? 1 : 0,
+	    reregister: this.reregister_input.prop("checked") ? 1 : 0,
+	    shift: this.shift_input.prop("checked") ? 1 : 0,
+	    pmra: this.pmra_input.val(),
+	    pmdec: this.pmdec_input.val(),
         };
 	return jQuery.param(args);
     };
@@ -401,13 +436,15 @@ function WiseSwapper () {
         }
 
         var size = this.size_input.val();
-        this.canvas.attr("width", this.real_img_size[0]).attr("height", this.real_img_size[1]);
+	// TODO: Is this needed? =>
+        //this.canvas.attr("width", this.real_img_size[0]).attr("height", this.real_img_size[1]);
 
 	if (zoom === undefined) {
             zoom = this.zoom_input.slider("option","value");
 	}
 
         this.canvas.css("width", this.real_img_size[0] * zoom).css("height", this.real_img_size[1] * zoom);
+        this.over_canvas.css("width", this.real_img_size[0] * zoom).css("height", this.real_img_size[1] * zoom);
 
 	var maxsz = Math.max(this.real_img_size[0],this.real_img_size[1]);
 	jQuery("#pawnstars img").width(maxsz * zoom).height(maxsz * zoom)
@@ -485,17 +522,21 @@ function WiseSwapper () {
 
 	// Update window UI element
 	this.updateWindowValue(.75);
-	    
+	this.updateDiffWindowValue(0);
+
+	this.shift_input.prop("checked", false);
         this.pmra_input.val(0);
         this.pmdec_input.val(0);
-        this.border_input.prop("checked", true);
+        this.border_input.prop("checked", false);
+        this.gaia_input.prop("checked", false);
         this.invert_input.prop("checked", true);
         this.scandir_input.prop("checked", false);
         this.neowise_only_input.prop("checked", false);
         this.diff_input.prop("checked", false);
-        this.guess_bright_input.prop("checked", true);
+        this.manual_bright_input.prop("checked", false);
         this.outer_epochs_input.prop("checked", false);
         this.unique_windows_input.prop("checked", true);
+        this.reregister_input.prop("checked", false);
     };
 
     this.setDefaults = function () {
@@ -525,6 +566,38 @@ function WiseSwapper () {
     this.setTimeResolved = function () {
 	this.__setDefaults();
 	this.updateWindowValue(0);
+	this.restart();
+    };
+    
+    this.setJam = function () {
+	var mid = 0,
+	    newlow = ((symexp10(this.diffbright.low())-mid)/2)+mid,
+	    newhigh = ((symexp10(this.diffbright.high())-mid)/2)+mid;
+	this.diffbright.update_values(newlow,newhigh)
+	this.restart();
+    };
+    
+    this.setPPBright = function () {
+	this.__setDefaults();
+	this.trimbright.update_values(-4000,4000)
+	this.diffbright.update_values(-50,100000)
+	this.diff_input.prop("checked", true);
+        this.manual_bright_input.prop("checked", true);
+        this.neowise_only_input.prop("checked", true);
+        this.outer_epochs_input.prop("checked", true);
+        this.unique_windows_input.prop("checked", true);
+	this.restart();
+    };
+    
+    this.setPPFaint = function () {
+	this.__setDefaults();
+	this.trimbright.update_values(-750,750)
+	this.diffbright.update_values(-50,4000)
+	this.diff_input.prop("checked", true);
+        this.manual_bright_input.prop("checked", true);
+        this.neowise_only_input.prop("checked", true);
+        this.outer_epochs_input.prop("checked", true);
+        this.unique_windows_input.prop("checked", true);
 	this.restart();
     };
     
@@ -564,18 +637,22 @@ function WiseSwapper () {
 
 	// Update window UI element
 	this.updateWindowValue(Number(map.window) || 0.5);
+	this.updateDiffWindowValue(Number(map.diff_window) || 1.0);
 	    
-        this.pmra_input.val(map.pmra || 0);
-        this.pmdec_input.val(map.pmdec || 0);
         this.border_input.prop("checked", (map.border || 0) == 1);
+        this.gaia_input.prop("checked", (map.gaia || 0) == 1);
         this.adv_input.prop("checked", (map.adv || 0) == 1);
         this.invert_input.prop("checked", (map.invert || 1) == 1);
         this.scandir_input.prop("checked", (map.scandir || 0) == 1);
         this.neowise_only_input.prop("checked", (map.neowise || 0) == 1);
         this.diff_input.prop("checked", (map.diff || 0) == 1);
-        this.guess_bright_input.prop("checked", (map.guess_bright || 1) == 1);
+        this.manual_bright_input.prop("checked", (map.manual_bright || 1) == 1);
         this.outer_epochs_input.prop("checked", (map.outer_epochs || 0) == 1);
         this.unique_windows_input.prop("checked", (map.unique_window || 1) == 1);
+        this.reregister_input.prop("checked", (map.reregister || 0) == 1);
+	this.shift_input.prop("checked", (map.shift || 0) == 1);
+        this.pmra_input.val(map.pmra || 0);
+        this.pmdec_input.val(map.pmdec || 0);
         this.update_zoom_input((Number(map.zoom) || 9));
 
         this.restart();
@@ -629,12 +706,15 @@ function WiseSwapper () {
 
 	// Draw border for epoch 0 if option set
         if (!this.border_input.prop("checked")) {
-	    this.canvas.css("border","");
+	    this.canvas.css("border","3px solid rgba(0,0,0,0)");
+	    this.over_canvas.css("border","3px solid rgba(0,0,0,0)");
         } else if (this.cur_img == 0) {
 	    this.canvas.css("border","3px dashed #999999");
+	    this.over_canvas.css("border","3px dashed #999999");
 	    jQuery("#pawnstars img").css("border","3px dashed #000000");
         } else {
-	    this.canvas.css("border","3px dashed #000000");
+	    this.canvas.css("border","3px solid rgba(0,0,0,0)");
+	    this.over_canvas.css("border","3px solid rgba(0,0,0,0)");
 	    jQuery("#pawnstars img").css("border","3px dashed #000000");
         }
     };
@@ -645,6 +725,22 @@ function WiseSwapper () {
 	    var image = this.images[this.cur_img];
 	    //this.context.drawImage(image, 0, 0);
 	    this.context.putImageData(image,0,0);
+	    //this.over_context.putImageData(new ImageData(1,1),0,0);
+	    this.over_context.clearRect(0,0,this.over_canvas.width(),this.over_canvas.height());
+	    
+	    //console.log(this.overlays)
+	    // TODO: YOU WHERE HERE. whys it making the canvas larger and blank?
+	    
+	    for (var ovr in this.overlays) {
+		if ((this.overlays[ovr].length == this.images.length)
+		    && this.overlays_enable[ovr]) {
+		    //this.over_context.drawImage(this.overlays[ovr][this.cur_img],0,0);
+		    this.over_context.putImageData(this.overlays[ovr][this.cur_img],0,0);
+		}
+		break
+		// TODO: drawImage if we use more than one overlay
+	    }
+	    
 	    if (this.canvas_mouse.drawing) {
 		this.context.beginPath();
 		//console.log("Start: "+this.canvas_mouse.startX+" sep: "+(this.canvas_mouse.sep/2)+" tot: "+(this.canvas_mouse.startX-(this.canvas_mouse.sep/2)));
@@ -724,10 +820,34 @@ function WiseSwapper () {
 	    head = this.headers[band][0],
 	    ra = head.cards.CRVAL1.value,
 	    dec = head.cards.CRVAL2.value,
-	    rad = -((((this.canvas_mouse.startX-(head.cards.CRPIX1.value))*2.75)/3600)/(Math.cos(dec*(Math.PI/180)))),
-	    decd = -(((this.canvas_mouse.startY-(head.cards.NAXIS2.value - head.cards.CRPIX2.value))*2.75)/3600),
+	    crpix1 = head.cards.CRPIX1.value-1,
+	    crpix2 = head.cards.CRPIX2.value-1,
+	    rad = ((((crpix1-this.canvas_mouse.startX)*2.75)/3600)/(Math.cos(dec*(Math.PI/180)))),
+	    decd = ((((head.cards.NAXIS2.value - crpix2)-this.canvas_mouse.startY)*2.75)/3600),
 	    ra = ra+rad, dec = dec+decd;
 	return {"ra": ra, "dec": dec};
+    };
+
+
+    this.__world_to_pix = function (ra,dec) {
+        var canvas = this.canvas[0],
+	    band = this.headers[1].length > 0 ? 1 : 2,
+	    head = this.headers[band][0],
+	    tile_ra = head.cards.CRVAL1.value,
+	    tile_dec = head.cards.CRVAL2.value,
+	    tile_px = head.cards.CRPIX1.value-1,
+	    tile_py = head.cards.CRPIX2.value-1,
+	    pxd = (tile_ra-ra)*(Math.cos(dec*(Math.PI/180))),
+	    pyd = (tile_dec-dec),
+	    // asec
+	    pxd = pxd*3600, pyd = pyd*3600,
+	    // pixels
+	    pxd = pxd/2.75, pyd = pyd/2.75,
+	    // From edge of tile
+	    pxd = pxd+head.cards.NAXIS1.value/2, pyd = pyd+head.cards.NAXIS2.value/2,
+	    px = pxd, py = pyd;
+	//px = tile_px+pxd, py = tile_py+pyd;
+	return {"px": px, "py": py};
     };
 
     
@@ -735,18 +855,24 @@ function WiseSwapper () {
         var pos = this.__new_pos(),
 	    current_zoom = this.zoom_input.slider("option","value"),
 	    current_fov = this.size_input.val();
-	
+
         fov = Number(fov).toFixed(0);
         if (fov < 6) {
 	    fov = 6;
 	}
 
-	window.open("/wiseview-v2#"+this.buildUrl(pos.ra,pos.dec,size=fov,zoom=(current_fov*current_zoom)/fov));
+	if (this.diff_input.prop("checked")) {
+	    // Drop out of diff
+	    window.open("/wiseview-v2#"+this.buildUrl(pos.ra,pos.dec,size=fov,zoom=(current_fov*current_zoom)/fov,diff=0,manual_bright=1));
+	} else {
+	    window.open("/wiseview-v2#"+this.buildUrl(pos.ra,pos.dec,size=fov,zoom=(current_fov*current_zoom)/fov));
+	}
+	
     };
 
 
     this.move_fov = function (fov) {
-        var pos = this.__new_pos();
+        var pos = this.__new_pos();	
 	
         fov = Number(fov).toFixed(0);
         if (fov < 6) {
@@ -765,89 +891,116 @@ function WiseSwapper () {
     };
 
 
+    this.__get_cutouts = function (band,meta) {
+	// Get all the cutouts
+	var promises = [];
+	for (var e = 0; e < meta["ims"].length; e++) {
+	    that.pos_ims[band].push(null);
+	    that.neg_ims[band].push(null);
+
+	    promises.push(new Promise(function(res,rej) {
+		var your_epoch_ = e,
+		    your_band = band,
+		    your_url = "https://touchspot-astro-public.s3-us-west-1.amazonaws.com/"+meta["ims"][e];
+		jQuery.ajax({
+		    url: your_url,
+		    xhrFields: { responseType: "blob" },
+		    success: function (buf) {
+			new astro.FITS(buf, function () {
+			    hdim = this.getHDU(0)
+			    // Assign header to header array
+			    that.headers[your_band][your_epoch_] = hdim.header;
+			    hdim.data.getFrame(0, function (arr) {
+				cards = that.headers[your_band][your_epoch_].cards;
+				that.pos_ims[your_band][your_epoch_] = nj.float32(arr).reshape(cards.NAXIS2.value,cards.NAXIS1.value);
+				res();
+			    });
+			});
+		    }});
+	    }));
+
+	    if (!("neg_ims" in meta)) {
+		continue;
+	    }
+
+	    promises.push(new Promise(function(res,rej) {
+		var your_epoch_ = e,
+		    your_band = band,
+		    your_url = "https://touchspot-astro-public.s3-us-west-1.amazonaws.com/"+meta["neg_ims"][e];
+		jQuery.ajax({
+		    url: your_url,
+		    xhrFields: { responseType: "blob" },
+		    success: function (buf) {
+			new astro.FITS(buf, function () {
+			    hdim = this.getHDU(0)
+			    // Assign header to header array
+			    that.headers[your_band][your_epoch_] = hdim.header;
+			    hdim.data.getFrame(0, function (arr) {
+				cards = that.headers[your_band][your_epoch_].cards;
+				that.neg_ims[your_band][your_epoch_] = nj.float32(arr).reshape(cards.NAXIS2.value,cards.NAXIS1.value);
+				res();
+			    });
+			});
+		    }});
+	    }));
+	}
+	return promises;
+    };
+
+
     this.get_cutouts = function (ra,dec,size,band) {
 	var bound_band = band;
 	console.log("Downloading and parsing unWISE FITS cutouts")
 	jQuery.getJSON(
-	    "/tiles", {"ra": ra, "dec": dec},
-	    function (response) {
-		var tile = response["tiles"][0];
-
-		// Get all the cutouts
-		var promises = [];
-		for (var e = 0; e < tile["epochs"].length; e++) {
-		    var meta = tile["epochs"][e],
-			band = Number(bound_band),
-			epoch_ = Number(meta["epoch"]),
-			band_ = Number(meta["band"]);
-		    if ((band_ & band) == 0) {
-			// If not doing this band, return
-			continue;
-		    }
-		    for (var i = that.cutouts[band_].length-1; i < epoch_; i++) {
-			that.cutouts[band_].push(null);
-		    }
-		    
-		    promises.push(new Promise(function(res,rej) {
-			var your_epoch_ = epoch_,
-			    your_band_ = band_;
-			jQuery.ajax({
-			    url: "https://n7z4i9pzx8.execute-api.us-west-2.amazonaws.com/prod/cutout",
-			    data: { coadd_id: tile["coadd_id"], ra: ra, dec: dec, px: tile["px"], py: tile["py"],
-				    size: size, epoch: your_epoch_, band: your_band_, covmap: true},
-			    //xhrFields: { responseType: "arrayBuffer" },
-			    //headers: { "Access-Control-Allow-Origin": "*" },
-			    success: function (buf) {
-				var shit = atob(buf),
-				    js_is_embarassing = new Uint8Array(shit.length);
-				for (var i = 0; i < shit.length; i++) {
-				    js_is_embarassing[i] = shit.charCodeAt(i);
-				}
-				shit = new Blob([js_is_embarassing], {type: "application/octet-stream"});
-				new astro.FITS(shit, function () {
-				    hdim = this.getHDU(0)
-				    hdcm = this.getHDU(1)
-				    
-				    // Assign header to header array
-				    that.headers[your_band_][your_epoch_] = hdim.header;
-
-				    var p1 = new Promise(function (resp1,rejp1) {
-					// Assign fetched cutout to cutouts array
-					hdim.data.getFrame(0, function (arr) {
-					    cards = that.headers[your_band_][your_epoch_].cards;
-					    that.cutouts[your_band_][your_epoch_] = nj.float32(arr).reshape(cards.NAXIS2.value,cards.NAXIS1.value);
-					    resp1();
-					});
-				    }), p2 = new Promise(function (resp2,rejp2) {
-					// coverage maps
-					hdcm.data.getFrame(0, function (arr) {
-					    cards = that.headers[your_band_][your_epoch_].cards;
-					    var zz = nj.float32(arr).reshape(cards.NAXIS2.value,cards.NAXIS1.value);
-					    that.covmaps[your_band_][your_epoch_] = zz;
-					    resp2();
-					});
-				    });
-				    Promise.all([p1,p2]).then(function () { res(); });
-				});
-			    }});
-		    }));
+	    "https://n7z4i9pzx8.execute-api.us-west-2.amazonaws.com/prod/meta-coadds",
+	    {ra: ra, dec: dec, band: band, size: size,
+	     diff: this.diff_input.prop("checked") ? 1 : 0,
+	     scandir: this.scandir_input.prop("checked") ? 1 : 0,
+	     outer: this.outer_epochs_input.prop("checked") ? 1 : 0,
+	     neowise: this.neowise_only_input.prop("checked") ? 1 : 0,
+	     window: this.window_input.slider("option","value"),
+	     diff_window: this.diff_window_input.slider("option","value"),
+	     unique: this.unique_windows_input.prop("checked") ? 1 : 0,
+	     reregister: this.reregister_input.prop("checked") ? 1 : 0,
+	     shift: this.shift_input.prop("checked") ? 1 : 0,
+	     pmx: (this.pmra_input.val()/1000.)/2.75,
+	     pmy: (this.pmdec_input.val()/1000.)/2.75,
+	    },
+	    function (meta) {
+		var promises = [],
+		    mah_band = "ims" in meta[1] ? 1 : 2;
+		
+		if ((band & 1) != 0) {
+		    promises = promises.concat(that.__get_cutouts(1,meta[1]));
+		}
+		
+		if ((band & 2) != 0) {
+		    promises = promises.concat(that.__get_cutouts(2,meta[2]));
 		}
 		Promise.all(promises).then(function () {
-		    var lastmjdmin = null, firstmjdmin = null;
-		    for (var e = 0; e < tile["epochs"].length; e++) {
-			var meta = tile["epochs"][e];
-			if (lastmjdmin === null || Number(meta["mjdmean"]) > lastmjdmin) {
-			    lastmjdmin = Number(meta["mjdmean"]);
-			}
-			if (firstmjdmin === null || Number(meta["mjdmean"]) < firstmjdmin) {
-			    firstmjdmin = Number(meta["mjdmean"]);
-			}
+		    var flat = arr_flat(meta["mjds"]),
+			mjd_bot = Math.min(...flat),
+			mjd_top = Math.max(...flat);
+
+		    that.global_mjds = meta["mjds"];
+		    
+		    that.window_mjds[mah_band] = meta[mah_band]["mjds"];
+		    that.window_epochs[mah_band] = meta[mah_band]["epochs"];
+		    that.window_antiepochs[mah_band] = "neg_epochs" in meta[mah_band] ? meta[mah_band]["neg_epochs"] : [];
+		    
+		    that.updateWindowLimits((mjd_top-mjd_bot)/365.25);
+		    that.updateDiffWindowLimits((mjd_top-mjd_bot)/365.25);
+
+		    // make catalog overlays
+		    that.overlays_enable["gaiadr2"] = false;
+		    if (that.gaia_input.prop("checked")) {
+			that.query_gaia(ra,dec,size);
+			// Doesn't need to be synched w/ ^
+			that.overlays_enable["gaiadr2"] = true;
 		    }
 		    
-		    that.updateWindowLimits((lastmjdmin-firstmjdmin)/365.25);
-		    
 		    // make some images
-		    that.make_images();
+		    that.make_images(meta);
 		});
 	    }
 	);
@@ -857,22 +1010,18 @@ function WiseSwapper () {
 
     this.updateMjds = function () {
 	// Update the list of date ranges
-	var window = this.window_input.slider("option","value")*365.25,
-	    versions = [],
+	var versions = [],
 	    band = 1;
 	
 	if (this.window_mjds[1].length == 0) {
 	    band = 2;
 	}
 
-	var bot = this.window_mjds[band][0],
-	    top = this.window_mjds[band][this.window_mjds[band].length-1];
-	
+	// For each frame, find lowest and highest mjd, and convert to
+	// a string for the UI
 	for (var i = 0; i < this.window_mjds[band].length; i++) {
-	    var low = this.window_mjds[band][i]-window,
-		high = this.window_mjds[band][i]+window;
-	    low = Math.min(Math.max(low,bot),top);
-	    high = Math.min(Math.max(high,bot),top);
+	    var low = Math.min(...this.window_mjds[band][i]),
+		high = Math.max(...this.window_mjds[band][i]);
 	    versions.push(mjd_to_aarondate(low)+" - "+mjd_to_aarondate(high))
 	}
 
@@ -881,39 +1030,21 @@ function WiseSwapper () {
 
 
     this.updateEpochs = function () {
-	// TODO ME TOO. Dots down left side, optional
 	// Find smallest, largest, and cardinality of epochs
 	var band = 1;
 	
 	if (this.window_epochs[band].length == 0) {
 	    band = 2;
 	}
-
-	var flat = arr_flat(this.window_epochs[band]),
-	    unique = [];
 	
-	for (var i = 0; i < flat.length; i++) {
-	    if (flat.indexOf(flat[i]) == i) {
-		unique.push(flat[i]);
-	    }
-	}
-
-	unique = unique.sort();
-
-	unique = []
-	for (var i = 0; i < this.cutouts[band].length; i++) {
-	    unique.push(i);
-	}
-
-	var min = Math.min(unique),
-	    max = Math.max(unique),
-	    res = [];
+	res = [];
 	for (var i = 0; i < this.window_epochs[band].length; i++) {
 	    var res2 = [];
-	    for (var j = 0; j < unique.length; j++) {
-		if (this.window_epochs[band][i].indexOf(unique[j]) != -1) {
+	    for (var j = 0; j < this.global_mjds.length; j++) {
+		if (this.window_epochs[band][i].indexOf(j) != -1) {
 		    res2.push("+");
-		} else if (this.window_antiepochs[band][i].indexOf(unique[j]) != -1) {
+		} else if (this.window_antiepochs[band].length > 0 &&
+			   this.window_antiepochs[band][i].indexOf(j) != -1) {
 		    res2.push("-");
 		} else {
 		    res2.push(".");
@@ -921,6 +1052,7 @@ function WiseSwapper () {
 	    }
 	    res.push(res2.join(""));
 	}
+	
 	this.epoch_legend = res;
     };
 
@@ -1002,14 +1134,18 @@ function WiseSwapper () {
 
 	this.trimstack(ims,user_minbright,user_maxbright);
 
-	// Normalize to 0 - 1
-	ims = ims.subtract(ims.min()).divide(ims.max() - ims.min());
-	
 	// Stretch
 	if (user_linear < 0.99) {
+	    // Normalize w/ min/max on user input instead of pixel min/max
+	    ims = ims.subtract(user_minbright).divide(user_maxbright - user_minbright); // 0-1 again
 	    ims = asinh_stretch(ims,user_linear);
-	    ims = ims.subtract(ims.min()).divide(ims.max() - ims.min()); // 0-1 again
+	    // ims = ims.subtract(ims.min()).divide(ims.max()-ims.min()); // 0-1 again
+	    // console.log("THREE"+ims.min()+" "+ims.max())
+	} else {
+	    // Normalize w/ min/max on user input instead of pixel min/max
+	    ims = ims.subtract(user_minbright).divide(user_maxbright - user_minbright); // 0-1 again
 	}
+
 	
 	ims = ims.multiply(255); // 0-255
 	    
@@ -1144,6 +1280,7 @@ function WiseSwapper () {
     this.__make_images_inner = function(range, band, scandir, neowise, diff, unique, outer,
 					mindiff, maxdiff) {
 	// Organize windowing calls by user settings
+	/*
 	if (scandir) {
 	    // Separate scandir
 	    return nj.concatenate(
@@ -1153,11 +1290,21 @@ function WiseSwapper () {
 	} else {
 	    // Don't separate scandir
 	    return nj.stack(this.__make_windowed_images(range,band,sep_scandir=scandir,forward=false,neowise=neowise,diff=diff,unique=unique,outer=outer,mindiff=mindiff,maxdiff=maxdiff));
+	    }*/
+	if (diff) {
+	    var res = [];
+	    this.trimarr(this.pos_ims[band],mindiff,maxdiff);
+	    this.trimarr(this.neg_ims[band],mindiff,maxdiff);
+	    for (var i = 0; i < this.pos_ims[band].length > 0; i++) {
+		res.push(this.pos_ims[band][i].subtract(this.neg_ims[band][i]));
+	    }
+	    return nj.stack(res);
 	}
+	return nj.stack(this.pos_ims[band]);
     };
     
 
-    this.make_images = function () {
+    this.make_images = function (meta) {
 	// Convert cutouts to final images
 	// User configs and side effects localized to this function
 	// Inner functions take explicit params and have no side effects
@@ -1177,68 +1324,36 @@ function WiseSwapper () {
 	    linear = this.linear_input.slider("option","value"),
 	    w1_realmin = null, w1_realmax = null,
 	    w2_realmin = null, w2_realmax = null,
-	    guess = this.guess_bright_input.prop("checked");
+	    guess = !this.manual_bright_input.prop("checked"),
+	    w1_finalbot = null, w1_finaltop = null,
+	    w1_diffbot = null, w1_difftop = null,
+	    w2_finalbot = null, w2_finaltop = null,
+	    w2_diffbot = null, w2_difftop = null;
 
 	if (bands&1) {		
-	    for (var i = 0; i < this.cutouts[1].length; i++) {
-		var min = this.cutouts[1][i].min(),
-		    max = this.cutouts[1][i].max();
-		if (w1_realmin == null || min < w1_realmin) {
-		    w1_realmin = min;
-		}
-		if (w1_realmax == null || max > w1_realmax) {
-		    w1_realmax = max;
-		}
-	    }
-
-	    if (guess) {
-		var w1_meanmean = 0;
-		for (var i = 0; i < this.cutouts[1].length; i++) {
-		    w1_meanmean += this.cutouts[1][i].mean();
-		}
-		w1_meanmean = Math.max(w1_meanmean / this.cutouts[1].length,250.0);
-	    }
-	    console.log("Building W1 meta coadds")
-	    w1_ims = this.__make_images_inner(range,1,scandir,neowise,diff,unique,outer,
-					      guess ? -50.0 : user_mindiff,
-					      guess ? w1_meanmean*2.0 : user_maxdiff);
-	    console.log("Clipping and stretching W1 meta coadds")
-	    w1 = this.trim_and_normalize(w1_ims,
-					 guess ? -w1_meanmean : user_minbright,
-					 guess ? w1_meanmean : user_maxbright,
-					 linear);
+	    var w1_realmin = meta[1]["min"], w1_realmax = meta[1]["max"],
+		w1_meanmean = meta[1]["mean"], w1_stdmean = meta[1]["std"];
+	    
+	    w1_diffbot = guess ? -50 : user_mindiff;
+	    w1_difftop = guess ? 10000 : user_maxdiff;
+	    w1_ims = this.__make_images_inner(range,1,scandir,neowise,diff,unique,outer,w1_diffbot,w1_difftop);
+	    
+	    w1_finalbot = guess ? (diff ? -750 : -50) : user_minbright;
+	    w1_finaltop = guess ? (diff ? 750 : (w1_meanmean+(2*w1_stdmean))) : user_maxbright;
+	    w1 = this.trim_and_normalize(w1_ims,w1_finalbot,w1_finaltop,linear);
 	}
 	
 	if (bands&2) {
+	    var w2_realmin = meta[2]["min"], w2_realmax = meta[2]["max"],
+		w2_meanmean = meta[2]["mean"], w2_stdmean = meta[2]["std"];
 	    
-	    for (var i = 0; i < this.cutouts[2].length; i++) {
-		var min = this.cutouts[2][i].min(),
-		    max = this.cutouts[2][i].max();
-		if (w2_realmin == null || min < w2_realmin) {
-		    w2_realmin = min;
-		}
-		if (w2_realmax == null || max > w2_realmax) {
-		    w2_realmax = max;
-		}
-	    }
-
-	    if (guess) {
-		var w2_meanmean = 0;
-		for (var i = 0; i < this.cutouts[2].length; i++) {
-		    w2_meanmean += this.cutouts[2][i].mean();
-		}
-		w2_meanmean = Math.max(w2_meanmean / this.cutouts[2].length,250.0);
-	    }
-
-	    console.log("Building W2 meta coadds")
-	    w2_ims = this.__make_images_inner(range,2,scandir,neowise,diff,unique,outer,
-					      guess ? -50.0 : user_mindiff,
-					      guess ? w2_meanmean*2.0 : user_maxdiff);
-	    console.log("Clipping and stretching W2 meta coadds")
-	    w2 = this.trim_and_normalize(w2_ims,
-					 guess ? -w2_meanmean : user_minbright,
-					 guess ? w2_meanmean : user_maxbright,
-					 linear);
+	    w2_diffbot = guess ? -50 : user_mindiff;
+	    w2_difftop = guess ? 10000 : user_maxdiff;
+	    w2_ims = this.__make_images_inner(range,2,scandir,neowise,diff,unique,outer,w2_diffbot,w2_difftop);
+	    
+	    w2_finalbot = guess ? (diff ? -750 : -50) : user_minbright;
+	    w2_finaltop = guess ? (diff ? 750 : (w2_meanmean+(2*w2_stdmean))) : user_maxbright;
+	    w2 = this.trim_and_normalize(w2_ims,w2_finalbot,w2_finaltop,linear);
 	}
 
 	var minmin = bands == 3 ? Math.min(w2_realmin,w1_realmin)
@@ -1247,31 +1362,33 @@ function WiseSwapper () {
 	    maxmax = bands == 3 ? Math.max(w2_realmax,w1_realmax)
 	    : bands == 2 ? w2_realmax
 	    : w1_realmax,
-	    meanmean = bands == 3 ? Math.max(w2_meanmean,w1_meanmean)
-	    : bands == 2 ? w2_meanmean
-	    : w1_meanmean;
-	
+	    botbot = bands == 3 ? Math.min(w2_finalbot,w1_finalbot)
+	    : bands == 2 ? w2_finalbot
+	    : w1_finalbot,
+	    toptop = bands == 3 ? Math.max(w2_finaltop,w1_finaltop)
+	    : bands == 2 ? w2_finaltop
+	    : w1_finaltop,
+	    diffbot = bands == 3 ? Math.min(w2_diffbot,w1_diffbot)
+	    : bands == 2 ? w2_diffbot
+	    : w1_diffbot,
+	    difftop = bands == 3 ? Math.max(w2_difftop,w1_difftop)
+	    : bands == 2 ? w2_difftop
+	    : w1_difftop;
 
 	if (diff) {
-	    console.log("Difference imaging")
 	    minmin = Math.min(minmin,-maxmax);
 	}
 	
-	console.log("Packing meta coadds into canvas frames")
 	// Set min/max to image min/max
 	this.trimbright.update_limits(minmin,maxmax);
 	// Set value low/high to inner of settings and image min/max
-	this.trimbright.update_values(
-	    Math.max(guess ? -meanmean : user_minbright,minmin),
-	    Math.min(guess ? meanmean : user_maxbright,maxmax));
+	this.trimbright.update_values(botbot,toptop);
 	
 	// Set min/max to image min/max
 	this.diffbright.update_limits(minmin,maxmax);
 	// Set value low/high to inner of settings and image min/max
-	this.diffbright.update_values(
-	    Math.max(guess ? -50.0 : user_mindiff,minmin),
-	    Math.min(guess ? meanmean*2 : user_maxdiff,maxmax));
-
+	this.diffbright.update_values(diffbot,difftop);
+	
 	if (bands == 1) {
 	    this.pack_images(w1["im"]);
 	} else if (bands == 2) {
@@ -1290,6 +1407,11 @@ function WiseSwapper () {
 	} else {
 	    this.real_img_size = [w2_ims.shape[2],w2_ims.shape[1]]
 	}
+	
+	// Update canvas size to fit images
+	this.canvas.attr("width", this.real_img_size[0]).attr("height", this.real_img_size[1]);
+	// Update overlay size to match, *10 for extra resolution
+	this.over_canvas.attr("width", this.real_img_size[0]*10).attr("height", this.real_img_size[1]*10);
 
 	this.updateMjds();
 	this.updateEpochs();
@@ -1297,8 +1419,99 @@ function WiseSwapper () {
 	this.unblock();
     }
 
+
+    this.query_gaia = function (ra,dec,size) {
+	var size_deg = (size/3600.)*2.75,
+	    path = "https://n7z4i9pzx8.execute-api.us-west-2.amazonaws.com/prod/catalog/gaiadr2", //"https://gea.esac.esa.int/tap-server/tap/sync",
+	    params = {
+		request: "doQuery",
+		lang: "adql",
+		format: "json",
+		query: "SELECT ra, dec, parallax, pmra, pmdec "+
+		    "FROM gaiadr2.gaia_source "+
+		    "WHERE 1=CONTAINS(POINT('ICRS',ra,dec), "+
+		    "  CIRCLE('ICRS',"+ra+","+dec+","+size_deg+"))"
+	    },
+	    that = this;
+	return jQuery.post(path,params,function (data,status) {
+	    // Required ra, dec, plx, pmra, pmdec
+	    var rows = data["data"],
+		frames = [],
+		base_mjd = 57204, // 2015.5
+		mah_band = that.headers[1].length > 0 ? 1 : 2,
+		head = that.headers[mah_band][0],
+		window_mjds = that.window_mjds[mah_band],
+		// hidden canvas to build overlay
+		tmp_canvas = jQuery("<canvas/>",{"style":"display: none"}).prop({"width":that.real_img_size[0]*10,"height":that.real_img_size[1]*10})[0],
+		shifting = that.shift_input.prop("checked"),
+		shift_pmra = that.pmra_input.val(),
+		shift_pmdec = that.pmdec_input.val();
+	    var ctx = tmp_canvas.getContext("2d");
+
+	    // Convert starting ra/dec to pixels
+	    for (var i = 0; i < rows.length; i++) {
+		var row = rows[i],
+		    pxpy = that.__world_to_pix(row[0],row[1]);
+		row.push(pxpy["px"]);
+		row.push(pxpy["py"]);
+	    }
+	    
+	    for (var i = 0; i < window_mjds.length; i++) {
+		var mjd = arr_mean(window_mjds[i]),
+		    first_mjd = arr_mean(window_mjds[0]),
+		    last_mjd = arr_mean(window_mjds[window_mjds.length-1]);
+
+		// Clear it
+		ctx.clearRect(0,0,tmp_canvas.width,tmp_canvas.height);
+
+		// For each point, draw a circle
+		for (var j = 0; j < rows.length; j++) {
+		    /*
+		    if (rows[j][2] == "null" || Number(rows[j][2]) < 10) {
+			continue;
+		    }*/
+		    
+		    var row = rows[j],
+			px = row[5], py = row[6],
+			pmra = row[3], pmdec = row[4],
+			pmra = shifting ? pmra-shift_pmra : pmra,
+			pmdec = shifting ? pmdec-shift_pmdec : pmdec,
+			// correct for pm
+			base_px = px, base_py = py,
+			px = base_px + (((base_mjd - mjd)/365.25)*((pmra/1000)/2.75)),
+			py = base_py + (((base_mjd - mjd)/365.25)*((pmdec/1000)/2.75)),
+			first_px = base_px + (((base_mjd - first_mjd)/365.25)*((pmra/1000)/2.75)),
+			first_py = base_py + (((base_mjd - first_mjd)/365.25)*((pmdec/1000)/2.75)),
+			last_px = base_px + (((base_mjd - last_mjd)/365.25)*((pmra/1000)/2.75)),
+			last_py = base_py + (((base_mjd - last_mjd)/365.25)*((pmdec/1000)/2.75)),
+			plx = row[2] == "null" ? 0 : Number(row[2]);
+
+		    // Circle for current position and plx
+		    ctx.beginPath();
+		    ctx.arc(px*10,py*10,Math.max(0.1,plx/50)*10,0,2*Math.PI);
+		    ctx.strokeStyle = "#009900";
+		    ctx.lineWidth = 1;
+		    ctx.stroke();
+		    ctx.closePath();
+		    
+		    // Line for pm
+		    ctx.beginPath();
+		    ctx.moveTo(first_px*10,first_py*10);
+		    ctx.lineTo(last_px*10,last_py*10);
+		    ctx.stroke();
+		    ctx.closePath();
+		}
+		var image = ctx.getImageData(0,0,tmp_canvas.width,tmp_canvas.height)
+		//var image = new Image();
+		//image.src = tmp_canvas.toDataURL();
+		frames.push(image);
+	    }
+	    that.overlays["gaiadr2"] = frames;
+	});
+    };
+
     
-    this.notifygo = function () { console.log("Fired input changed"); }
+    this.notifygo = function () { console.log("Fired input changed"); };
 
     this.block = function() {
 	jQuery("#nav-left").block({message: null, fadein: 0, fadeout: 0})
@@ -1330,7 +1543,8 @@ function WiseSwapper () {
 	    var ra = loc_split[0],
 		dec = loc_split[1];
 	}
-	var size = (~~(that.size_input.val()/2.75)); // Convert arcseconds to pixels
+	var sizeas = that.size_input.val(),
+	    size = (~~(sizeas/2.75)); // Convert arcseconds to pixels
 	var band = that.band_input.val();
 
 	// Disable/enable pertinent sliders
@@ -1339,18 +1553,32 @@ function WiseSwapper () {
 	if (!this.diff_input.prop("checked")) {
 	    this.diffbright.disable();
 	}
-	if (jQuery("#guessBrightInput").prop("checked")) {
+	if (!jQuery("#manualBrightInput").prop("checked")) {
 	    this.trimbright.disable();
 	    this.diffbright.disable();
 	}
 
 	this.get_cutouts(ra,dec,size,band);
 
-	// hide/show advanced settings
-	if (this.adv_input.prop("checked")) {
-	    jQuery("#advSettings").show();
+	// hide/show
+	//if (this.adv_input.prop("checked")) {
+	//   jQuery("#advSettings").show();
+	//}
+	
+	if (this.diff_input.prop("checked")) {
+	    jQuery("#diffbrightRow").show();
+	    jQuery("#diffWindowRow").show();
 	}
-
+	
+	if (this.shift_input.prop("checked")) {
+	    jQuery("#pmraDiv").show();
+	    jQuery("#pmdecDiv").show();
+	}
+	
+	if (jQuery("#manualBrightInput").prop("checked")) {
+	    jQuery("#trimbrightRow").show();
+	    jQuery("#linearRow").show();
+	}
 
         this.updatePawnstars();
         this.updateZooiSubjects();
@@ -1372,6 +1600,56 @@ function WiseSwapper () {
 	} else {
 	    jQuery("#advSettings").hide();
 	}
+    };
+
+    this.showhide_diff = function(evt) {
+	if (evt.target.checked) {
+	    jQuery("#diffbrightRow").show();
+	    jQuery("#diffWindowRow").show();
+	} else {
+	    jQuery("#diffbrightRow").hide();
+	    jQuery("#diffWindowRow").hide();
+	}
+    };
+
+    this.showhide_shift = function(evt) {
+	if (evt.target.checked) {
+	    jQuery("#pmraDiv").show();
+	    jQuery("#pmdecDiv").show();
+	} else {
+	    jQuery("#pmraDiv").hide();
+	    jQuery("#pmdecDiv").hide();
+	}
+    };
+
+    this.showhide_trim = function(evt) {
+	if (evt.target.checked) {
+	    this.trimbright.enable();
+	    jQuery("#trimbrightRow").show();
+	    jQuery("#linearRow").show();
+	} else {
+	    jQuery("#trimbrightRow").hide();
+	    jQuery("#linearRow").hide();
+	    this.restart();
+	}
+    };
+
+    this.gaia_toggle = function(evt) {
+	if (evt.target.checked) {
+	    if (!("gaiadr2" in this.overlays)) {
+		this.block();
+		var loc_split = this.parseLoc(),
+		    ra = loc_split[0],
+		    dec = loc_split[1],
+		    sizeas = that.size_input.val(),
+		    size = (~~(sizeas/2.75)); // Convert arcseconds to pixels
+		this.query_gaia(ra,dec,size).then(this.unblock);
+	    }
+	    this.overlays_enable["gaiadr2"] = true;
+	} else {
+	    this.overlays_enable["gaiadr2"] = false;
+	}
+
     };
 }
 
@@ -1395,9 +1673,11 @@ jQuery(function () {
 	if (v > 2000) {
 	    jQuery("#"+evt.target.id).val(2000);
 	}}.bind(ws));
+    
     jQuery("#daCanvas").on("mouseup", ws.move_up.bind(ws));
     jQuery("#daCanvas").on("mousedown", ws.move_down.bind(ws));
     jQuery("#daCanvas").on("mousemove", ws.move_move.bind(ws));
+    jQuery(".urlers").on("change", ws.updateUrl.bind(ws));
     jQuery(".resetters").on("change", ws.restart.bind(ws));
     //jQuery("#speedInput").on('change', ws.updateSpeed.bind(ws));
     //jQuery("#zoomInput").on('change', ws.updateZoom.bind(ws));
@@ -1405,11 +1685,19 @@ jQuery(function () {
     jQuery("#trimbrightInput").on("slidestop", ws.restart.bind(ws));
     jQuery("#diffbrightInput").on("slidestop", ws.restart.bind(ws));
     jQuery("#windowInput").on("slidestop", ws.restart.bind(ws));
+    jQuery("#diffWindowInput").on("slidestop", ws.restart.bind(ws));
     jQuery("#tabs button").on("click", ws.tabClick.bind(ws));
     jQuery("#setDefaultsButton").on("click", ws.setDefaults.bind(ws));
-    jQuery("#setDiffButton").on("click", ws.setDiff.bind(ws));
-    jQuery("#setPrePostButton").on("click", ws.setPrePost.bind(ws));
-    jQuery("#setParallaxEnhancingButton").on("click", ws.setParallaxEnhancing.bind(ws));
-    jQuery("#setTimeResolvedButton").on("click", ws.setTimeResolved.bind(ws));
-    jQuery("#advInput").on("change", ws.showhide_adv.bind(ws));
+    //jQuery("#setDiffButton").on("click", ws.setDiff.bind(ws));
+    //jQuery("#setPrePostButton").on("click", ws.setPrePost.bind(ws));
+    //jQuery("#setParallaxEnhancingButton").on("click", ws.setParallaxEnhancing.bind(ws));
+    //jQuery("#setTimeResolvedButton").on("click", ws.setTimeResolved.bind(ws));
+    //jQuery("#setJamButton").on("click", ws.setJam.bind(ws));
+    jQuery("#setPPBrightButton").on("click", ws.setPPBright.bind(ws));
+    jQuery("#setPPFaintButton").on("click", ws.setPPFaint.bind(ws));
+    //jQuery("#advInput").on("change", ws.showhide_adv.bind(ws));
+    jQuery("#diffInput").on("change", ws.showhide_diff.bind(ws));
+    jQuery("#shiftInput").on("change", ws.showhide_shift.bind(ws));
+    jQuery("#manualBrightInput").on("change", ws.showhide_trim.bind(ws));
+    jQuery("#gaiaInput").on("change", ws.gaia_toggle.bind(ws));
 });

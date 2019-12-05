@@ -20,141 +20,170 @@
 	<button id="tabAbout" class="inactive">About</button>
       </div>
       <div id="tabSettingsDiv" class="tabBody">
-        <div class="row">
-          <label title="Equatorial, decimal degrees or hms/dms (e.g., 12.3 45.6, 1 2 3.0 4 5 6.0, 1h2m3.0s 4d5m6.0s)" for="locInput">Right ascension and declination</label>
+
+	<div class="row">
+	  <label title="Equatorial, decimal degrees or hms/dms (e.g., 12.3 45.6, 1 2 3.0 4 5 6.0, 1h2m3.0s 4d5m6.0s)" for="locInput">Right ascension and declination</label>
+	</div>
+	<div class="row">
           <input type="text" class="resetters" id="locInput">
         </div>
+	
         <div class="row">
-          <div>
-            <label for="sizeInput" style="display: inline;">Field of View (arcseconds):</label>
-            <input type="text" class="resetters" id="sizeInput" value="60">
-          </div>
+          <input type="text" class="resetters" id="sizeInput" value="60">
+          <label for="sizeInput" style="display: inline;">Field of View (arcseconds)</label>
         </div>
-        <div class="row">
-          <div>
-	    <label for="bandInput" style="display: inline;">Band[s]: </label>
-            <select class="resetters" id="bandInput">
-              <option value=1>W1</option>
-              <option select="selected" value=2>W2</option>
-              <option value=3>W1+W2</option>
-            </select>
-          </div>
+	
+        <div class="row" id="bandRow">
+          <select class="resetters" id="bandInput">
+            <option value=1>W1</option>
+            <option select="selected" value=2>W2</option>
+            <option value=3>W1+W2</option>
+          </select>
+	  <label for="bandInput" style="display: inline;">Band[s] </label>
         </div>
-        <div class="sliderrow">
-          <div>
+
+	<div class="buttonRow">
+	  <button id="setDefaultsButton" class="fullButt">Apply defaults</button>
+	</div>
+
+	<div id="mainSliders">
+          <div class="sliderrow" id="windowRow">
+            <label title="Changes the width of the sliding window used for coadding time-resolved coadds. For example, width of 1.0yr adds, for each time-resolved coadd, all other coadds within 1.0yr" for="windowValue">Sliding window (<span id="windowValue"></span> yrs)</label>
+	    <div id="windowInput"></div>
+          </div>
+	  
+          <div class="sliderrow">	    
             <label title="Changes interval of the blink animation. Lower interval = faster blink" for="speedValue">Blink interval (<span id="speedValue"></span> ms)</label>
 	    <div id="speedInput"></div>
           </div>
-        </div>
-        <div class="sliderrow">
-          <div>
+	  
+          <div class="sliderrow">
             <label title="Scale all images on the page" for="zoomValue">Zoom (<span id="zoomValue"></span>)</label>
             <div id="zoomInput"></div>
           </div>
-        </div>
-
-	<div id="weakButtons">
-	  <button id="setDefaultsButton" class="weakButt">Apply defaults</button>
-	  <button id="setDiffButton" class="weakButt">Difference imaging</button>
-	  <button id="setPrePostButton" class="weakButt">Pre vs post</button>
-	  <button id="setParallaxEnhancingButton" class="weakButt">Parallax enhancing</button>
-	  <button id="setTimeResolvedButton" class="weakButt">Time-resolved</button>
 	</div>
-
-        <!--<div class="row" id="pmraRow">
-          <div>
-            <label for="pmraInput" style="display: inline;">pmra (mas/yr):</label>
-            <input type="text" class="resetters" id="pmraInput" value="0">
-          </div>
-        </div>
-        <div class="row" id="pmdecRow">
-          <div>
-            <label for="pmdecInput" style="display: inline;">pmdec (mas/yr):</label>
-            <input type="text" class="resetters" id="pmdecInput" value="0">
-          </div>
-        </div>-->
-	
-        <div class="row">
-          <div>
-            <label for="advInput" style="display: inline;">Show advanced settings</label>
-            <input type="checkbox" id="advInput" checked>
-          </div>
-        </div>
-	
-	<div id="advSettings" style="display: none">
-          <div class="row">
-            <div>
-              <label title="Sets max pixel value to mean, max diff to 2*mean" for="guessBrightInput" style="display: inline;">Guess best min/max pixel values</label>
-              <input type="checkbox" class="resetters" id="guessBrightInput" checked>
-            </div>
-          </div>
-	  <div class="sliderrow" id="trimbrightRow">
-            <div>
-              <label title="Minimum and maximum pixel values after all coaddition/subtraction and before stretching" for="trimbrightValue">Min - max pixel values: <span id="trimbrightValue"></span></label>
-	      <div id="trimbrightInput"></div>
-            </div>
-          </div>
+	  
+	<div class="subsettings">
 	  <div class="row">
             <div>
-              <label title="Subtract all coadds outside of the sliding window from coadds within the sliding window. This, for each time-resolved coadd, adds together everything in the window into one image A, adds together everything outside the window into one image B, then subtracts A-B" for="diffInput" style="display: inline;">Difference imaging</label>
-              <input type="checkbox" class="resetters" id="diffInput" checked>
+	      <input type="checkbox" class="urlers" id="manualBrightInput" checked>
+	      <label title="Sets max pixel value to mean, max diff to 2*mean" for="manualBrightInput" style="display: inline;">Use custom min/max pixel values</label>
             </div>
           </div>
-          <div class="sliderrow" id="diffbrightRow">
+	
+	  <div class="sliderrow" id="trimbrightRow" style="display: none">
             <div>
-              <label title="Min and max pixel values BEFORE image subtraction" for="diffbrightValue">Min - max pixel values: <span id="diffbrightValue"></span></label>
-	      <div id="diffbrightInput"></div>
+              <label title="Minimum and maximum pixel values after all coaddition/subtraction and before stretching" for="trimbrightValue">Min - max pixel values: <span id="trimbrightValue"></span></label>
+	    <div id="trimbrightInput"></div>
             </div>
           </div>
-
-          <div class="sliderrow">
+	  
+          <div class="sliderrow" id="linearRow" style="display: none">
             <div>
               <label title="Changes the arcsinh based stretch to more linear (1.0) or log-like (0.0)" for="linearValue">Stretch Linearity (<span id="linearValue"></span>)</label>
 	      <div id="linearInput"></div>
             </div>
           </div>
-          <div class="sliderrow" id="windowRow">
-            <div>
-              <label title="Changes the width of the sliding window used for coadding time-resolved coadds. For example, width of 1.0yr adds, for each time-resolved coadd, all other coadds within 1.0yr" for="windowValue">Sliding window (<span id="windowValue"></span> yrs)</label>
-	      <div id="windowInput"></div>
-            </div>
-          </div>
+	</div>	
+
+	<div id="advSettings">
           <div class="row">
             <div>
-              <label title="Invert pixel values (255 - value) before creating final images in animation" for="invertInput" style="display: inline;">Invert pixel values</label>
               <input type="checkbox" class="resetters" id="invertInput" checked>
+              <label title="Invert pixel values (255 - value) before creating final images in animation" for="invertInput" style="display: inline;">Invert pixel values</label>
             </div>
           </div>
+	  
           <div class="row">
             <div>
-              <label title="Separate coadds from one or the other scan direction and show the two animations sequentially. This is useful for visualizing objects that only appear in one scan direction, such as real objects with high parallax and some artifacts" for="scandirInput" style="display: inline;">Separate scan directions</label>
               <input type="checkbox" class="resetters" id="scandirInput" checked>
+              <label title="Separate coadds from one or the other scan direction and show the two animations sequentially. This is useful for visualizing objects that only appear in one scan direction, such as real objects with high parallax and some artifacts" for="scandirInput" style="display: inline;">Separate scan directions</label>
             </div>
           </div>
+	  
           <div class="row">
             <div>
-              <label title="Remove all pre NEOWISE images from coaddition"  for="neowiseOnlyInput" style="display: inline;">Use only NEOWISE imagery</label>
               <input type="checkbox" class="resetters" id="neowiseOnlyInput" checked>
+              <label title="Remove all pre NEOWISE images from coaddition"  for="neowiseOnlyInput" style="display: inline;">Use only NEOWISE imagery</label>
             </div>
           </div>
           <div class="row">
             <div>
-              <label title="Only show the first and last images in the blink animation"  for="outerEpochsInput" style="display: inline;">Skip middle epochs</label>
               <input type="checkbox" class="resetters" id="outerEpochsInput" checked>
+              <label title="Only show the first and last images in the blink animation"  for="outerEpochsInput" style="display: inline;">Skip middle epochs</label>
             </div>
           </div>
           <div class="row">
             <div>
-              <label title="Don't show coadds that are identical to previous coadds. This creates more consistent animations" for="uniqueWindowsInput" style="display: inline;">Skip duplicate windows</label>
               <input type="checkbox" class="resetters" id="uniqueWindowInput" checked>
+              <label title="Don't show coadds that are identical to previous coadds. This creates more consistent animations" for="uniqueWindowsInput" style="display: inline;">Skip duplicate windows</label>
             </div>
           </div>
           <div class="row">
             <div>
-              <label title="Highlight when the animation restarts by bordering the first coadd with a white checked line" for="borderInput" style="display: inline;">Border epoch 0</label>
-              <input type="checkbox" class="resetters" id="borderInput" checked>
+              <input type="checkbox" class="resetters" id="reregisterInput" checked>
+              <label title="Reregister (align) cutouts before adding/subtracting" for="reregisterInput" style="display: inline;">Reregister cutouts</label>
             </div>
           </div>
+          <div class="row">
+            <div>
+              <input type="checkbox" class="urlers" id="borderInput" checked>
+              <label title="Highlight when the animation restarts by bordering the first coadd with a white checked line" for="borderInput" style="display: inline;">Border epoch 0</label>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <input type="checkbox" class="urlers" id="gaiaInput">
+              <label title="Overlay Gaia DR2 catalog detections" for="gaiaInput" style="display: inline;">Gaia DR2 overlay</label>
+            </div>
+          </div>
+	  
+	  <div class="subsettings">
+	    <div class="row">
+              <div>
+		<input type="checkbox" class="resetters" id="diffInput" checked>
+		<label title="Subtract all coadds outside of the sliding window from coadds within the sliding window. This, for each time-resolved coadd, adds together everything in the window into one image A, adds together everything outside the window into one image B, then subtracts A-B" for="diffInput" style="display: inline;">Difference imaging</label>
+              </div>
+            </div>
+            <div class="sliderrow" id="diffbrightRow" style="display: none">
+              <div>
+		<label title="Min and max pixel values BEFORE image subtraction" for="diffbrightValue">Min - max pixel values: <span id="diffbrightValue"></span></label>
+		<div id="diffbrightInput"></div>
+              </div>
+            </div>
+
+	    <div class="sliderrow" id="diffWindowRow" style="display: none">
+              <div>
+		<label title="Exclude a window around the target epoch from subtraction" for="windowValue">Exclusion window (<span id="diffWindowValue"></span> yrs)</label>
+		<div id="diffWindowInput"></div>
+              </div>
+            </div>
+	  </div>
+
+	  <div class="subsettings">
+            <div class="row">
+              <div>
+		<input type="checkbox" class="resetters" id="shiftInput">
+		<label title="Shift images before adding them together to correct for motion" for="shiftInput" style="display: inline;">Shift and add</label>
+              </div>
+            </div>
+            <div class="row" id="pmraDiv" style="display: none">
+              <div>
+		<label title="Amount to shift in RA" for="pmraInput" style="display: inline;">pmra (mas/yr)</label>
+		<input type="text" class="resetters" id="pmraInput">
+              </div>
+            </div>
+            <div class="row" id="pmdecDiv" style="display: none">
+              <div>
+		<label title="Amount to shift in Dec" for="pmdecInput" style="display: inline;">pmdec (mas/yr)</label>
+		<input type="text" class="resetters" id="pmdecInput">
+              </div>
+            </div>
+	  </div>
+	</div>
+	<div class="buttonRow">
+	  <button id="setPPBrightButton" class="weakButt">Plane party bright</button>
+	  <button id="setPPFaintButton" class="weakButt">Plane party faint</button>
 	</div>
 	<div><p><i>Wiseview is tested on Chrome, and has known issues in Edge and IE</i></p></div>
       </div>
@@ -172,14 +201,27 @@
       <div id="tabHelpDiv" class="tabBody" hidden>
 	<p></p>
 	<h1>Help</h1>
-	<p>See our <a href="https://www.youtube.com/watch?v=23hXbfh1_aA">tutorial video for Wiseview-V1</a> by Guillaume Colin</p>
+	<p>See our <a href="https://www.youtube.com/watch?v=23hXbfh1_aA">tutorial video for Wiseview-V1</a> by Guillaume Colin. V1 Cheat Sheet down below.</p>
 	<p>Wiseview is designed for quick visualization of moving objects in unWISE images. It is built for Chrome, and may have Surprise Bugs in other browsers.</p>
 	<p>To get started, enter your coordinates, in either degrees decimal or sexegesiaml h:m:s d:m:s format, into the top text bar. Sexegesimal coordinates may be separated by colons (1:2:3.45), spaces (1 2 3.45), or letter designators (1h2m3.45s).</p>
 	<p>Choose how large of an image (<b><i>Field of view</i></b>) to display, in arcseconds. The image can be scaled up or down with the <b><i>Zoom</i></b> slider, and the animation made faster by reducing the <b><i>Blink interval</i></b> slider. Wiseview can display either the W1 or W2 bands in greyscal, or W1+W2 in a colored image where red gets W2, blue gets W1, and green gets the average of W1 and W2.</p>
 	<p>The plusses, minuses, and periods (+, -, .) between the sidebar and the unWISE images are the <b><i>epoch legend</i></b>. They show which epochs are added (+), subtracted (-), or not used (.) in the current frame. A <b><i>dashed border</i></b> appears whenever the animation resets to help visually distinguish when moving objects are truly moving in a consistent direction, and not hopping back halfway through the animation. The dashed border may be disabled in advanced settings.</p>
 	<p><b><i>Click on the image to move</i></b>. Click and drag to open a new tab with a different field of view. Hold down the control key (Windows) or command key (Mac) to open tabs in the background with Chrome. New tabs can also be used to get coordinates when there are multiple interesting areas within a large field of view.</p>
-	<p>Buttons on the main sidebar mimick Wiseview-V1 functionality. <b><i>Pre-post</i></b> is useful to maximize the appearance of motion, but can make inconsistenly moving objects appear consistent due to only showing two frames. <b><i>Parallax enhancing</i></b> separates unWISE images into two buckets by season. The effect is to maximize parallax, and is good for examining some artifacts (ghosts, latents) and extremely close candidates like planet 9. <b><i>Time-resolved</i></b> shows exactly one unWISE time-resolved coadd per frame, which can help debugging whether you're looking at a cosmic ray or asteroid that appears only once. <b<i>>Difference imaging</i></b> is good for bright movers in crowded fields. It can make faint objects fainter, so it's best not to use it unless necessary. A good use case is finding new candidates with a really big field of view.</p>
-	<p>If none of the preset modes do it for you, enable the advanced settings to directly control pretty much all aspects of image processing.</p>
+	<p id="cheatSheet">
+	  <table>
+	    <tr><th>V1 Mode</th><th>V2 Equivalent Settings</th></tr>
+	    <tr><td></td><td>Check "Invert pixel values" and "Skip duplicate windows" (or hit Defaults)</td></tr>
+	    <tr><td>time-resolved</td><td>Move Window slider all the way left</td></tr>
+	    <tr><td>full-depth</td><td>Move Window slider all the way right (or visit legacysurvey.org/viewer)</td></tr>
+	    <tr><td><b>window-*-year</b></td><td><b>Default</b>, move Window slider somewhere in the middle</td></tr>
+	    <tr><td>pre-post</td><td>Check "Skip middle epochs"</td></tr>
+	    <tr><td>window-*-year-para...</td><td>Check "Separate scan directions"</td></tr>
+	    <tr><td>parallax-enhancing</td><td>Check "Separate scan directions" and move the Window slider all the way right</td>
+	    <tr><td>swindow-*-year</td><td>Check "Difference imaging"</td></tr>
+	    <tr><td>shift-and-add</td><td>Not yet implemented</td></tr>
+	    <tr><td>parallax-cancelling-*</td><td>Not implemented</td></tr>
+	  </table>
+	</p>
       </div>
       <div id="tabAboutDiv" class="tabBody" hidden>
         <h1>About</h1>
@@ -198,10 +240,13 @@
       <p id="epoch-legend-value"></p>
     </div>
     <div id="image-field">
-      <!--<p><i>DEV SERVICE (:8080) INTENTIONALLY OFFLINE/BUSTED DURING DEVELOPMENT</i></p>-->
+      <p><i>DEV SERVICE (:8080) INTENTIONALLY OFFLINE/BUSTED DURING DEVELOPMENT</i></p>
       <p id="verValue">Loading...</p>
       <div id="image">
-        <canvas title="Click and drag to open a new cutout in another tab" id="daCanvas" width="100" height="100"></canvas>
+	<div id="border">
+          <canvas title="Click and drag to open a new cutout in another tab" id="daCanvas"></canvas>
+	  <canvas id="overlayCanvas"></canvas>
+	</div>
       </div>
       <a id="pawnstarsLink" href="https://ps1images.stsci.edu/cgi-bin/ps1cutouts" target="_blank">
 	<div id="pawnstars"></div>

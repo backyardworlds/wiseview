@@ -5,13 +5,24 @@ html, body {
     color: white;
     height: 100vh;
 }
+#image {
+    position: relative;
+}
+#border {
+    overflow: hidden;
+}
 canvas {
     image-rendering: optimizeSpeed;
     image-rendering: -moz-crisp-edges;         
     image-rendering: -webkit-optimize-contrast;
     image-rendering: -o-crisp-edges;           
     image-rendering: pixelated;    
-    -ms-interpolation-mode: nearest-neighbor;  
+    -ms-interpolation-mode: nearest-neighbor;
+    top: 0px;
+    left: 0px;
+}
+#overlayCanvas {
+    position: absolute;
 }
 a:link {
     color: white
@@ -35,8 +46,17 @@ p {
     font-size: 12px;
     padding: 0px 10px;
 }
+table, td, th {
+    border: 1px solid #ffffff;
+}
+td {
+    font-size: 12px;
+    padding: 0px 10px;
+}
+tr {
+    padding: 5px 5px;
+}
 label {
-    display: block;
     font-size: 14px;
 }
 #legacySurvey {
@@ -172,6 +192,9 @@ input {
     padding-left: 10px;
     width: 250;
 }
+#mainSliders {
+    padding-bottom: 10px;
+}
 .inline {
     float: left;
     margin-right: 10px;
@@ -180,10 +203,15 @@ input {
     width: 215px;
 }
 #sizeInput {
-    width: 40px;
+    width: 10%;
 }
 #bandInput {
+    margin: 0px 5px;
     width: 30%;
+    padding-top: 0px;
+}
+#bandRow {
+    padding-top: 1px;
 }
 #colorInput {
     width: 30%;
@@ -196,14 +224,19 @@ input {
     font-size: 2em;
     font-weight: bold;
 }
-#weakButtons {
+.buttonRow {
     margin-top: 15px;
     margin-bottom: 10px;
     margin-left: 3px;
 }
 .weakButt {
     margin: 0;
-    width: 32%;
+    width: 48.5%;
+    outline: 0;
+}
+.fullButt {
+    margin: 0;
+    width: 99%;
     outline: 0;
 }
 .tabBody {
@@ -211,4 +244,10 @@ input {
     overflow-y: auto;
     height: 90%;
     border-top: 2px solid #999999;
+}
+.subsettings {
+    border-style: solid;
+    border-width: 1px;
+    padding-bottom: 7px;
+    margin-top: 3px;
 }
