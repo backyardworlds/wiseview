@@ -549,7 +549,7 @@ class Tiles_Page(Resource):
         res = {"tiles":[]}
 
         for coadd_id,coadds in unwtiles.get_tiles(args.ra,args.dec).groupby(level=[0]):
-            wcs = unwtiles.tr_cutout_solutions[unwtiles.tr_coadd_to_index[coadd_id]]
+            wcs = unwtiles.tr_cutout_solutions[coadd_id]
             px,py = wcs.wcs_world2pix(np.array([[args.ra,args.dec]]),0)[0]
             res["tiles"].append({"coadd_id": str(coadd_id),
                                  "px": px, "py": py,
@@ -619,80 +619,6 @@ class Cutout_Page(Resource):
         
         
 api.add_resource(Cutout_Page, "/cutout")
-
-
-class Cutoutx_Page(Resource):
-    def get(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument("ra", type=float, required=True)
-        parser.add_argument("dec", type=float, required=True)
-        parser.add_argument("size", type=int, required=True)
-        parser.add_argument("band", type=int, choices=(1,2), required=True)
-        parser.add_argument("epoch", type=int, required=True)
-        parser.add_argument("covmap", type=bool, required=False, default=False)
-        args = parser.parse_args()
-
-        coadds = unwtiles.get_tiles(args.ra,args.dec).loc[(slice(None),
-                                                           args.epoch,
-                                                           args.band),:]
-
-        if len(coadds) == 0:
-            return "unWISE data not available for parameters", 404
-        
-        # Take the first (should be closest, by sort?)
-        coadd = coadds.iloc[0,:]
-        coadd_id,epoch,band = coadd.name
-
-        if args.size < 1000:
-            wcs = unwtiles.tr_cutout_solutions[unwtiles.tr_coadd_to_index[coadd_id]]
-            px,py = wcs.wcs_world2pix(np.array([[args.ra,args.dec]]),0)[0]
-            path_ = (
-                "https://n7z4i9pzx8.execute-api.us-west-2.amazonaws.com/prod/cutout?" + 
-                "&".join([
-                    "coadd_id=%s"%coadd_id,
-                    "ra=%f"%args.ra,
-                    "dec=%f"%args.dec,
-                    "px=%f"%px,
-                    "py=%f"%py,
-                    "size=%d"%args.size,
-                    "epoch=%d"%args.epoch,
-                    "band=%d"%args.band,
-                    "covmap=%s"%args.covmap]))
-            redir = redirect(path_,302)
-            redir.headers["Access-Control-Allow-Origin"] = "*"
-            return redir
-
-        # Get cutout
-        if args.covmap:
-            im,cm = unwcutout.get_by_tile_epoch(
-                coadd_id,
-                epoch,args.ra,args.dec,
-                band,size=args.size,
-                fits=True,
-                covmap=True
-            )
-            im = aif.open(StringIO(im))
-            cm = aif.open(StringIO(cm))
-            im = aif.PrimaryHDU(im[0].data,header=im[0].header)
-            cm = aif.ImageHDU(cm[0].data,header=cm[0].header)
-            sio = StringIO()
-            aif.HDUList([im,cm]).writeto(sio)
-            sio.seek(0)
-        else:
-            cutout = unwcutout.get_by_tile_epoch(
-                coadd_id,
-                epoch,args.ra,args.dec,
-                band,size=args.size,
-                fits=True,
-            )
-        
-            sio = StringIO(cutout)
-            sio.seek(0)
-        # TODO: redirect to aws if size is below 1000 pixels
-        return send_file(sio,"application/binary")
-        
-        
-api.add_resource(Cutoutx_Page, "/cutoutx")
 
 
 
