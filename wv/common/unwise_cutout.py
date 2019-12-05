@@ -55,12 +55,6 @@ def cutout(fitsfileobj,ra,dec,size,fits=False,scamp=None,
         cutf.header["CRVAL1"] = ra
         cutf.header["CRVAL2"] = dec
         
-        if scamp is not None:
-            raise Exception("IMPLEMENT ME")
-            # Use SCAMP headers to find px,py of RA, Dec
-            wcs = awcs.WCS(scamp)
-            px,py = wcs.wcs_world2pix(np.array([[ra,dec]]),0)[0]
-
         sio = StringIO.StringIO()
         cutf.writeto(sio)
         sio.seek(0)
@@ -90,7 +84,7 @@ def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
          "unwise-%s-w%d-img-m.fits"%(coadd_id,band)))
 
     # Fetch pre-built WCS solution
-    wcs = ut.tr_cutout_solutions[ut.tr_coadd_to_index[coadd_id]]
+    wcs = ut.tr_cutout_solutions[coadd_id]
 
     # Get content from S3
     sio = StringIO.StringIO()
@@ -148,7 +142,8 @@ def main():
     args = ap.parse_args()
 
     tiles = ut.get_tiles(args.ra,args.dec).iloc[0,:]
-    cutout = get_by_tile_epoch(tiles["COADD_ID"],args.ra,args.dec,
+    print tiles
+    cutout = get_by_tile_epoch(tiles.name[0],args.ra,args.dec,
                                args.band,args.epoch,
                                size=args.size,fits=True)
     #import sys

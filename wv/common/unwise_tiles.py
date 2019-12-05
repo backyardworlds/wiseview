@@ -24,9 +24,6 @@ tile_tree = None
 # Store WCS solutions for all tiles
 tr_cutout_solutions = None
 
-# Store coordinates for all tiles
-tr_cutout_coords = None
-
 # Store full index
 tr_index = None
 
@@ -93,56 +90,44 @@ def array_to_cards(arr,full=False):
     return h
 
 
-def __init(index):
-    global tile_tree, tr_cutout_solutions, tr_cutout_coords, tr_scamp_solutions, tr_index, tr_coadd_to_index
+def __init(index,wcs_index):
+    global tile_tree, tr_cutout_solutions, tr_index
     # OK. w2 same as w1. CD all the same. get tiles from index, hardcode CD, build cutout atlas every time in memory. scamp separate
     # Initialize atlas
     # !!!ERRATUM!!!
     # astropy's HDUList is NOT concurrency safe.
-    data = aif.open(index)[1].data
-
-    tr_index = pd.DataFrame(data.tolist(),
-                            columns=data.names)
-    tr_index.set_index(["COADD_ID","EPOCH","BAND"],inplace=True)
 
     # Enumerate all finding coords from any epoch of each tile
     # Assuming W2 and W1 first epoch coadds are all the same
     # and the CD parameters are identical
     # (they were as of neo3)
-    tr_cutout_solutions = []
-    tr_cutout_coords = []
-    tr_coadd_to_index = {}
-
-    for coadd_id,coadds in tr_index.groupby(level=[0]):
-        tr_coadd_to_index[coadd_id] = len(tr_cutout_coords)
-        # Pick any coadd
-        coadd = coadds.iloc[0,:]
-
-        # Store index for this ra, dec
-        tr_cutout_coords.append((coadd_id,coadd["RA"],coadd["DEC"]))
-
+    tr_cutout_solutions = {}
+    wcs_index = pd.read_csv(wcs_index)
+    # Has one row per tile
+    for _,row in wcs_index.iterrows():
         # Store a WCS solution for the coadd
-        h = build_cutout_header(coadd)
+        h = build_cutout_header(row)
         wcs = awcs.WCS(h)
-        tr_cutout_solutions.append(wcs)
+        tr_cutout_solutions[row["COADD_ID"]] = wcs
 
-    # TODO: Build SCAMP header support again
-
-    tr_cutout_coords = pd.DataFrame(tr_cutout_coords,
-                                    columns=["COADD_ID","RA","DEC"])
-    
     # Build global tile tree (insignificant improvement w/ cache file)
-    tile_tree = rdbt.rdtree(tr_cutout_coords)
+    tile_tree = rdbt.rdtree(wcs_index[["COADD_ID","RA","DEC"]])
+
+    # Store time-resolved index
+    data = aif.open(index)[1].data
+
+    tr_index = pd.DataFrame(data.tolist(),
+                            columns=data.names).set_index(["COADD_ID","EPOCH","BAND"])
 
 
-def _tile_contains_position(idx,ra,dec):
+def _tile_contains_position(coadd_id,ra,dec):
     """
     Test whether tile contains position.
     Return summed distance to nearest edges, epochs if contained
     Return None,epochs if not contained
     """
     # Get a WCS
-    wcs = tr_cutout_solutions[idx]
+    wcs = tr_cutout_solutions[coadd_id]
     
     # Find pixel coordinates of ra, dec
     px,py = wcs.wcs_world2pix(np.array([[ra,dec]]),0)[0]
@@ -173,11 +158,12 @@ def get_tiles(ra,dec):
     # to nearest edge
     tiles = []
     for tileofs in nearby_tiles[0][0]:
-        nearest_edge = _tile_contains_position(tileofs,ra,dec)
+        coadd_id = tile_tree.table.iloc[tileofs]["COADD_ID"]
+        nearest_edge = _tile_contains_position(coadd_id,ra,dec)
         if nearest_edge is not None:
-            coadd_id,_,_ = tr_cutout_coords.iloc[tileofs,:]
-            tiles.append((nearest_edge,coadd_id))
-            #within_tiles.append((nearest_edge,get_epochs_by_idx(idx)))
+            #coadd_id,_,_ = tr_index.iloc[tileofs,:]
+            #tiles.append((nearest_edge,coadd_id))
+            tiles.append((nearest_edge, coadd_id))
 
     # Sort by furthest from an edge. This is a better metric than
     # distance to tile center, because it accurately expresses
@@ -186,51 +172,24 @@ def get_tiles(ra,dec):
     tiles = [x[1] for x in tiles] # drop "nearest" field
     
     # Extract index rows by coadd_id
-    df = tr_index.loc[tiles,:]
-    df = df.reindex(tiles,level=0)
+    df = tr_index.loc[(tiles,slice(None),slice(None)),:]
 
     return df
-
-"""
-def get_epochs_by_idx(idx):
-    # Grab rows until hitting the next coadd_id or
-    # end of the atlas
-    last = None
-    idx = idx[0]
-    for i in xrange(idx,len(tr_atlas_epochs)):
-        coadd_id = tr_atlas_epochs[i][0]
-        if last is not None and last != coadd_id:
-            break
-        last = coadd_id
-    return tr_atlas_epochs[idx:i]
-"""
 
 def main():
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("ra",type=float)
     ap.add_argument("dec",type=float)
-    ap.add_argument("--atlas",default="tr_neo4_index_sorted.fits")
+    ap.add_argument("--atlas",default="tr_neo5_index-mjd.fits")
+    ap.add_argument("--wcs",default="tr_neo4_wcs_sorted.csv")
     args = ap.parse_args()
 
-    __init(args.atlas)
+    __init(args.atlas,args.wcs)
 
     epochs = get_tiles(float(args.ra),float(args.dec))
     print epochs
 
-    # Testing
-    coadds = get_tiles(args.ra,args.dec)
-    print coadds
-    coadd = coadds.iloc[0,:]
-    print coadd
-    print coadd.name
-    coadd_id,epoch,band = coadd.name
-    z = coadds.loc[(coadd_id,slice(None),band),
-                   coadds["FORWARD"] == 0,:]
-    
-    print [x[1] for x in z.index]
-    print z["MJDMEAN"].values.astype(float)
-    print abs(z["MJDMEAN"] - 56645.42586916)
 
 if __name__ == "__main__": main()
-else: __init("tr_neo4_index_sorted.fits")
+else: __init("tr_neo5_index-mjd.fits","tr_neo4_wcs_sorted.csv")
