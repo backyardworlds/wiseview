@@ -735,8 +735,11 @@ class Coadd_Strategy_Page(Resource):
         
         def fwd(coadds,coadd_id,band,fwd=1):
             """Select only FORWARD == fwd coadds"""
-            return coadds.loc[(coadd_id,slice(None),band),:].loc[
-                              coadds["FORWARD"] == fwd,:]
+            coadds = coadds.loc[(coadd_id,slice(None),band),:]
+            first_mjd = coadds.iloc[0]["MJDMEAN"]
+            mjdmod = (first_mjd-coadds["MJDMEAN"]).abs() % 365.25
+            forward = (mjdmod < (365.25/4.)) | (mjdmod >= (365.25*3/4.))
+            return coadds.loc[forward,:]
 
         
         if coadd_mode == "time-resolved":
@@ -752,6 +755,7 @@ class Coadd_Strategy_Page(Resource):
         elif coadd_mode == "parallax-cancelling-forward":
             # Only forward
             solutions.extend(dictit(fwd(coadds,coadd_id,band,1)))
+            print "MAH SOLUTIONS",solutions
         elif coadd_mode == "parallax-cancelling-backward":
             # Only backward
             solutions.extend(dictit(fwd(coadds,coadd_id,band,0)))
