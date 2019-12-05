@@ -739,6 +739,8 @@ class Coadd_Strategy_Page(Resource):
             first_mjd = coadds.iloc[0]["MJDMEAN"]
             mjdmod = (first_mjd-coadds["MJDMEAN"]).abs() % 365.25
             forward = (mjdmod < (365.25/4.)) | (mjdmod >= (365.25*3/4.))
+            if fwd != 1:
+                forward = ~forward
             return coadds.loc[forward,:]
 
         
