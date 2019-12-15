@@ -65,113 +65,86 @@
 	  
 	<div class="subsettings">
 	  <div class="row">
-            <div>
-	      <input type="checkbox" class="urlers" id="manualBrightInput" checked>
-	      <label title="Sets max pixel value to mean, max diff to 2*mean" for="manualBrightInput" style="display: inline;">Use custom min/max pixel values</label>
-            </div>
+	    <input type="checkbox" class="urlers" id="manualBrightInput" checked>
+	    <label title="Sets max pixel value to mean, max diff to 2*mean" for="manualBrightInput" style="display: inline;">Use custom min/max pixel values</label>
           </div>
 	
 	  <div class="sliderrow" id="trimbrightRow" style="display: none">
-            <div>
-              <label title="Minimum and maximum pixel values after all coaddition/subtraction and before stretching" for="trimbrightValue">Min - max pixel values: <span id="trimbrightValue"></span></label>
+            <label title="Minimum and maximum pixel values after all coaddition/subtraction and before stretching" for="trimbrightValue">Min - max pixel values: <span id="trimbrightValue"></span></label>
 	    <div id="trimbrightInput"></div>
-            </div>
           </div>
 	  
           <div class="sliderrow" id="linearRow" style="display: none">
-            <div>
-              <label title="Changes the arcsinh based stretch to more linear (1.0) or log-like (0.0)" for="linearValue">Stretch Linearity (<span id="linearValue"></span>)</label>
-	      <div id="linearInput"></div>
-            </div>
+            <label title="Changes the arcsinh based stretch to more linear (1.0) or log-like (0.0)" for="linearValue">Stretch Linearity (<span id="linearValue"></span>)</label>
+	    <div id="linearInput"></div>
           </div>
 	</div>	
 
 	<div id="advSettings">
           <div class="row">
-            <div>
-              <input type="checkbox" class="resetters" id="invertInput" checked>
-              <label title="Invert pixel values (255 - value) before creating final images in animation" for="invertInput" style="display: inline;">Invert pixel values</label>
-            </div>
+            <input type="checkbox" class="resetters" id="invertInput" checked>
+            <label title="Invert pixel values (255 - value) before creating final images in animation" for="invertInput" style="display: inline;">Invert pixel values</label>
           </div>
 	  
           <div class="row">
-            <div>
-              <input type="checkbox" class="resetters" id="scandirInput" checked>
-              <label title="Separate coadds from one or the other scan direction and show the two animations sequentially. This is useful for visualizing objects that only appear in one scan direction, such as real objects with high parallax and some artifacts" for="scandirInput" style="display: inline;">Separate scan directions</label>
-            </div>
+            <input type="checkbox" class="resetters" id="maxdyrInput" checked>
+            <label title="Set min and max frame intensity to the min and max pixel values after clipping. This maximizes dynamic range, but makes image intensities inconsistent across coordinates and settings." for="maxdyrInput" style="display: inline;">Maximize dynamic range</label>
           </div>
 	  
           <div class="row">
-            <div>
-              <input type="checkbox" class="resetters" id="neowiseOnlyInput" checked>
-              <label title="Remove all pre NEOWISE images from coaddition"  for="neowiseOnlyInput" style="display: inline;">Use only NEOWISE imagery</label>
-            </div>
+            <input type="checkbox" class="resetters" id="scandirInput" checked>
+            <label title="Separate coadds from one or the other scan direction and show the two animations sequentially. This is useful for visualizing objects that only appear in one scan direction, such as real objects with high parallax and some artifacts" for="scandirInput" style="display: inline;">Separate scan directions</label>
+          </div>
+	  
+          <div class="row">
+            <input type="checkbox" class="resetters" id="neowiseOnlyInput" checked>
+            <label title="Remove all pre NEOWISE images from coaddition"  for="neowiseOnlyInput" style="display: inline;">Use only NEOWISE imagery</label>
           </div>
           <div class="row">
-            <div>
-              <input type="checkbox" class="resetters" id="outerEpochsInput" checked>
-              <label title="Only show the first and last images in the blink animation"  for="outerEpochsInput" style="display: inline;">Skip middle epochs</label>
-            </div>
+            <input type="checkbox" class="resetters" id="outerEpochsInput" checked>
+            <label title="Only show the first and last images in the blink animation"  for="outerEpochsInput" style="display: inline;">Skip middle epochs</label>
           </div>
           <div class="row">
-            <div>
-              <input type="checkbox" class="resetters" id="uniqueWindowInput" checked>
-              <label title="Don't show coadds that are identical to previous coadds. This creates more consistent animations" for="uniqueWindowsInput" style="display: inline;">Skip duplicate windows</label>
-            </div>
+            <input type="checkbox" class="resetters" id="uniqueWindowInput" checked>
+            <label title="Don't show coadds that are identical to previous coadds. This creates more consistent animations" for="uniqueWindowsInput" style="display: inline;">Skip duplicate windows</label>
           </div>
           <div class="row">
-            <div>
-              <input type="checkbox" class="resetters" id="reregisterInput" checked>
-              <label title="Reregister (align) cutouts before adding/subtracting" for="reregisterInput" style="display: inline;">Reregister cutouts</label>
-            </div>
+            <input type="checkbox" class="resetters" id="reregisterInput" checked>
+            <label title="Reregister (align) cutouts before adding/subtracting" for="reregisterInput" style="display: inline;">Reregister cutouts</label>
           </div>
           <div class="row">
-            <div>
-              <input type="checkbox" class="urlers" id="borderInput" checked>
-              <label title="Highlight when the animation restarts by bordering the first coadd with a white checked line" for="borderInput" style="display: inline;">Border epoch 0</label>
-            </div>
+            <input type="checkbox" class="urlers" id="borderInput" checked>
+            <label title="Highlight when the animation restarts by bordering the first coadd with a white checked line" for="borderInput" style="display: inline;">Border epoch 0</label>
           </div>
           <div class="row">
-            <div>
-              <input type="checkbox" class="urlers" id="gaiaInput">
-              <label title="Overlay Gaia DR2 catalog detections" for="gaiaInput" style="display: inline;">Gaia DR2 overlay</label>
-            </div>
+            <input type="checkbox" class="urlers" id="gaiaInput">
+            <label title="Overlay Gaia DR2 catalog detections" for="gaiaInput" style="display: inline;">Gaia DR2 overlay</label>
           </div>
 	  
 	  <div class="subsettings">
 	    <div class="row">
-              <div>
-		<input type="checkbox" class="resetters" id="diffInput" checked>
-		<label title="Subtract all coadds outside of the sliding window from coadds within the sliding window. This, for each time-resolved coadd, adds together everything in the window into one image A, adds together everything outside the window into one image B, then subtracts A-B" for="diffInput" style="display: inline;">Difference imaging</label>
-              </div>
+	      <input type="checkbox" class="resetters" id="diffInput" checked>
+	      <label title="Subtract all coadds outside of the sliding window from coadds within the sliding window. This, for each time-resolved coadd, adds together everything in the window into one image A, adds together everything outside the window into one image B, then subtracts A-B" for="diffInput" style="display: inline;">Difference imaging</label>
             </div>
             <div class="sliderrow" id="diffbrightRow" style="display: none">
-              <div>
-		<label title="Min and max pixel values BEFORE image subtraction" for="diffbrightValue">Min - max pixel values: <span id="diffbrightValue"></span></label>
-		<div id="diffbrightInput"></div>
-              </div>
+	      <label title="Min and max pixel values BEFORE image subtraction" for="diffbrightValue">Min - max pixel values: <span id="diffbrightValue"></span></label>
+	      <div id="diffbrightInput"></div>
             </div>
 
 	    <div class="sliderrow" id="diffWindowRow" style="display: none">
-              <div>
-		<label title="Exclude a window around the target epoch from subtraction" for="windowValue">Exclusion window (<span id="diffWindowValue"></span> yrs)</label>
-		<div id="diffWindowInput"></div>
-              </div>
+	      <label title="Exclude a window around the target epoch from subtraction" for="windowValue">Exclusion window (<span id="diffWindowValue"></span> yrs)</label>
+	      <div id="diffWindowInput"></div>
             </div>
 	  </div>
 
 	  <div class="subsettings">
             <div class="row">
-              <div>
-		<input type="checkbox" class="resetters" id="shiftInput">
-		<label title="Shift images before adding them together to correct for motion" for="shiftInput" style="display: inline;">Shift and add</label>
-              </div>
+	      <input type="checkbox" class="resetters" id="shiftInput">
+	      <label title="Shift images before adding them together to correct for motion" for="shiftInput" style="display: inline;">Shift and add</label>
             </div>
             <div class="row" id="pmraDiv" style="display: none">
-              <div>
-		<label title="Amount to shift in RA" for="pmraInput" style="display: inline;">pmra (mas/yr)</label>
-		<input type="text" class="resetters" id="pmraInput">
-              </div>
+	      <label title="Amount to shift in RA" for="pmraInput" style="display: inline;">pmra (mas/yr)</label>
+	      <input type="text" class="resetters" id="pmraInput">
             </div>
             <div class="row" id="pmdecDiv" style="display: none">
               <div>

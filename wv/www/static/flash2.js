@@ -185,6 +185,9 @@ function ComplicatedSlider (name) {
 
 function WiseSwapper () {
     var this_ = this, that = this;
+
+    this.overlay_scale = 10;
+    this.border_width = 3;
     
     this.coadd_cache = new Memoizer(32);
     
@@ -345,6 +348,7 @@ function WiseSwapper () {
     this.gaia_input = jQuery("#gaiaInput");
     this.adv_input = jQuery("#advInput");
     this.invert_input = jQuery("#invertInput");
+    this.maxdyr_input = jQuery("#maxdyrInput");
     this.scandir_input = jQuery("#scandirInput");
     this.neowise_only_input = jQuery("#neowiseOnlyInput");
     this.diff_input = jQuery("#diffInput");
@@ -395,6 +399,7 @@ function WiseSwapper () {
 	    gaia: this.gaia_input.prop("checked") ? 1 : 0,
 	    adv: this.adv_input.prop("checked") ? 1 : 0,
 	    invert: this.invert_input.prop("checked") ? 1 : 0,
+	    maxdyr: this.maxdyr_input.prop("checked") ? 1 : 0,
 	    scandir: this.scandir_input.prop("checked") ? 1 : 0,
 	    neowise: this.neowise_only_input.prop("checked") ? 1 : 0,
 	    diff: diff,
@@ -530,6 +535,7 @@ function WiseSwapper () {
         this.border_input.prop("checked", false);
         this.gaia_input.prop("checked", false);
         this.invert_input.prop("checked", true);
+        this.maxdyr_input.prop("checked", false);
         this.scandir_input.prop("checked", false);
         this.neowise_only_input.prop("checked", false);
         this.diff_input.prop("checked", false);
@@ -643,6 +649,7 @@ function WiseSwapper () {
         this.gaia_input.prop("checked", (map.gaia || 0) == 1);
         this.adv_input.prop("checked", (map.adv || 0) == 1);
         this.invert_input.prop("checked", (map.invert || 1) == 1);
+        this.maxdyr_input.prop("checked", (map.maxdyr || 0) == 1);
         this.scandir_input.prop("checked", (map.scandir || 0) == 1);
         this.neowise_only_input.prop("checked", (map.neowise || 0) == 1);
         this.diff_input.prop("checked", (map.diff || 0) == 1);
@@ -706,16 +713,16 @@ function WiseSwapper () {
 
 	// Draw border for epoch 0 if option set
         if (!this.border_input.prop("checked")) {
-	    this.canvas.css("border","3px solid rgba(0,0,0,0)");
-	    this.over_canvas.css("border","3px solid rgba(0,0,0,0)");
+	    this.canvas.css("border",this.border_width+"px solid rgba(0,0,0,0)");
+	    this.over_canvas.css("border",this.border_width+"px solid rgba(0,0,0,0)");
         } else if (this.cur_img == 0) {
-	    this.canvas.css("border","3px dashed #999999");
-	    this.over_canvas.css("border","3px dashed #999999");
-	    jQuery("#pawnstars img").css("border","3px dashed #000000");
+	    this.canvas.css("border",this.border_width+"px dashed #999999");
+	    this.over_canvas.css("border",this.border_width+"px dashed #999999");
+	    jQuery("#pawnstars img").css("border",this.border_width+"px dashed #000000");
         } else {
-	    this.canvas.css("border","3px solid rgba(0,0,0,0)");
-	    this.over_canvas.css("border","3px solid rgba(0,0,0,0)");
-	    jQuery("#pawnstars img").css("border","3px dashed #000000");
+	    this.canvas.css("border",this.border_width+"px solid rgba(0,0,0,0)");
+	    this.over_canvas.css("border",this.border_width+"px solid rgba(0,0,0,0)");
+	    jQuery("#pawnstars img").css("border",this.border_width+"px dashed #000000");
         }
     };
 
@@ -742,14 +749,16 @@ function WiseSwapper () {
 	    }
 	    
 	    if (this.canvas_mouse.drawing) {
-		this.context.beginPath();
+		this.over_context.beginPath();
 		//console.log("Start: "+this.canvas_mouse.startX+" sep: "+(this.canvas_mouse.sep/2)+" tot: "+(this.canvas_mouse.startX-(this.canvas_mouse.sep/2)));
-		this.context.rect(this.canvas_mouse.startX-this.canvas_mouse.sep,
-				  this.canvas_mouse.startY-this.canvas_mouse.sep,
-				  this.canvas_mouse.sep*2,this.canvas_mouse.sep*2);
-		this.context.lineWidth = 1;
-		this.context.strokeStyle = "yellow";
-		this.context.stroke();
+		this.over_context.rect(
+		    (this.canvas_mouse.startX-this.canvas_mouse.sep)*this.overlay_scale,
+		    (this.canvas_mouse.startY-this.canvas_mouse.sep)*this.overlay_scale,
+		    (this.canvas_mouse.sep*2)*this.overlay_scale,
+		    (this.canvas_mouse.sep*2)*this.overlay_scale);
+		this.over_context.lineWidth = 4;
+		this.over_context.strokeStyle = "yellow";
+		this.over_context.stroke();
 	    }
         }
     };
@@ -770,8 +779,8 @@ function WiseSwapper () {
         var canvas = this.canvas[0];
         var scaleX = canvas.width / canvas.clientWidth,
 	    scaleY = canvas.height / canvas.clientHeight;
-        this.canvas_mouse.x = (evt.pageX - (canvas.offsetLeft+canvas.clientLeft)) * scaleX;
-        this.canvas_mouse.y = (evt.pageY - (canvas.offsetTop+canvas.clientTop)) * scaleY;
+        this.canvas_mouse.x = (evt.pageX - (canvas.offsetParent.offsetLeft+canvas.clientLeft)) * scaleX;
+        this.canvas_mouse.y = (evt.pageY - (canvas.offsetParent.offsetTop+canvas.clientTop)) * scaleY;
     };
 
     
@@ -820,12 +829,43 @@ function WiseSwapper () {
 	    head = this.headers[band][0],
 	    ra = head.cards.CRVAL1.value,
 	    dec = head.cards.CRVAL2.value,
-	    crpix1 = head.cards.CRPIX1.value-1,
-	    crpix2 = head.cards.CRPIX2.value-1,
+	    crpix1 = head.cards.CRPIX1.value,
+	    crpix2 = head.cards.CRPIX2.value,
 	    rad = ((((crpix1-this.canvas_mouse.startX)*2.75)/3600)/(Math.cos(dec*(Math.PI/180)))),
 	    decd = ((((head.cards.NAXIS2.value - crpix2)-this.canvas_mouse.startY)*2.75)/3600),
 	    ra = ra+rad, dec = dec+decd;
 	return {"ra": ra, "dec": dec};
+    };
+
+
+    this.__world_to_pix2 = function (ra,dec) {
+        var canvas = this.canvas[0],
+	    band = this.headers[1].length > 0 ? 1 : 2,
+	    head = this.headers[band][0],
+	    tile_ra = head.cards.CRVAL1.value,
+	    tile_dec = head.cards.CRVAL2.value,
+	    tile_px = head.cards.CRPIX1.value,
+	    tile_py = head.cards.CRPIX2.value,
+	    // Radians
+	    torad = 180/Math.PI,
+	    scale = 2.75*3600*torad,
+	    scale = scale/7.5
+	    ra = ra/torad,
+	    dec = dec/torad,
+	    ra0 = tile_ra/torad,
+	    dec0 = tile_dec/torad,
+	    
+	    A = Math.cos(dec)*Math.cos(ra-ra0),
+	    F = scale/((Math.sin(dec0)*Math.sin(dec)) + (A*Math.cos(dec0))),
+	    
+	    pxd = -F*Math.cos(dec)*Math.sin(ra-ra0),
+	    pyd = -F*((Math.cos(dec0)*Math.sin(dec)) - (A*Math.sin(dec0))),
+
+	    //pxd = pxd/7.5, pyd = pyd/7.5,
+
+	    px = tile_px+pxd,
+	    py = tile_py+pyd;
+	return {"px": px, "py": py};
     };
 
 
@@ -835,17 +875,20 @@ function WiseSwapper () {
 	    head = this.headers[band][0],
 	    tile_ra = head.cards.CRVAL1.value,
 	    tile_dec = head.cards.CRVAL2.value,
-	    tile_px = head.cards.CRPIX1.value-1,
-	    tile_py = head.cards.CRPIX2.value-1,
+	    tile_px = head.cards.CRPIX1.value,
+	    tile_py = head.cards.CRPIX2.value,
 	    pxd = (tile_ra-ra)*(Math.cos(dec*(Math.PI/180))),
 	    pyd = (tile_dec-dec),
 	    // asec
 	    pxd = pxd*3600, pyd = pyd*3600,
 	    // pixels
 	    pxd = pxd/2.75, pyd = pyd/2.75,
+	    xx = pxd, yy = pyd,
 	    // From edge of tile
 	    pxd = pxd+head.cards.NAXIS1.value/2, pyd = pyd+head.cards.NAXIS2.value/2,
-	    px = pxd, py = pyd;
+	    // Add to move to center of pixel?
+	    px = pxd+.5, py = pyd-.5;
+	console.log("px: "+px+" xd: "+xx+" py:"+py+" yd: "+yy)
 	//px = tile_px+pxd, py = tile_py+pyd;
 	return {"px": px, "py": py};
     };
@@ -1126,24 +1169,28 @@ function WiseSwapper () {
 
 
     this.trim_and_normalize = function (ims,user_minbright,user_maxbright,
-					user_linear) {
+					user_linear,max_dyr=false) {
 	var r = [];
-	    
-	// Find minimum and maximum pixel values
-	var min = ims.min(), max = ims.max();
-
+	
 	this.trimstack(ims,user_minbright,user_maxbright);
+
+	if (max_dyr) {
+	    // Find minimum and maximum pixel values
+	    var min = ims.min(), max = ims.max();
+	} else {
+	    var min = user_minbright, max = user_maxbright;
+	}
 
 	// Stretch
 	if (user_linear < 0.99) {
 	    // Normalize w/ min/max on user input instead of pixel min/max
-	    ims = ims.subtract(user_minbright).divide(user_maxbright - user_minbright); // 0-1 again
+	    ims = ims.subtract(min).divide(max - min); // 0-1 again
 	    ims = asinh_stretch(ims,user_linear);
 	    // ims = ims.subtract(ims.min()).divide(ims.max()-ims.min()); // 0-1 again
 	    // console.log("THREE"+ims.min()+" "+ims.max())
 	} else {
 	    // Normalize w/ min/max on user input instead of pixel min/max
-	    ims = ims.subtract(user_minbright).divide(user_maxbright - user_minbright); // 0-1 again
+	    ims = ims.subtract(min).divide(max - min); // 0-1 again
 	}
 
 	
@@ -1328,7 +1375,9 @@ function WiseSwapper () {
 	    w1_finalbot = null, w1_finaltop = null,
 	    w1_diffbot = null, w1_difftop = null,
 	    w2_finalbot = null, w2_finaltop = null,
-	    w2_diffbot = null, w2_difftop = null;
+	    w2_diffbot = null, w2_difftop = null,
+	    normalize_bands = true,
+	    max_dyr = this.maxdyr_input.prop("checked");
 
 	if (bands&1) {		
 	    var w1_realmin = meta[1]["min"], w1_realmax = meta[1]["max"],
@@ -1340,12 +1389,19 @@ function WiseSwapper () {
 	    
 	    w1_finalbot = guess ? (diff ? -750 : -50) : user_minbright;
 	    w1_finaltop = guess ? (diff ? 750 : (w1_meanmean+(2*w1_stdmean))) : user_maxbright;
-	    w1 = this.trim_and_normalize(w1_ims,w1_finalbot,w1_finaltop,linear);
+	    w1 = this.trim_and_normalize(w1_ims,w1_finalbot,w1_finaltop,linear,max_dyr);
 	}
 	
 	if (bands&2) {
 	    var w2_realmin = meta[2]["min"], w2_realmax = meta[2]["max"],
 		w2_meanmean = meta[2]["mean"], w2_stdmean = meta[2]["std"];
+
+	    /*
+	    if ((bands == 3) && (normalize_bands)) {
+		for (var i = 0; i < this.pos_ims[2].length; i++){
+		    this.pos_ims[2][i] = this.pos_ims[2][i].add((meta[1]["mean"]-meta[2]["mean"]))
+		}
+	    }*/
 	    
 	    w2_diffbot = guess ? -50 : user_mindiff;
 	    w2_difftop = guess ? 10000 : user_maxdiff;
@@ -1353,7 +1409,7 @@ function WiseSwapper () {
 	    
 	    w2_finalbot = guess ? (diff ? -750 : -50) : user_minbright;
 	    w2_finaltop = guess ? (diff ? 750 : (w2_meanmean+(2*w2_stdmean))) : user_maxbright;
-	    w2 = this.trim_and_normalize(w2_ims,w2_finalbot,w2_finaltop,linear);
+	    w2 = this.trim_and_normalize(w2_ims,w2_finalbot,w2_finaltop,linear,max_dyr);
 	}
 
 	var minmin = bands == 3 ? Math.min(w2_realmin,w1_realmin)
@@ -1411,7 +1467,7 @@ function WiseSwapper () {
 	// Update canvas size to fit images
 	this.canvas.attr("width", this.real_img_size[0]).attr("height", this.real_img_size[1]);
 	// Update overlay size to match, *10 for extra resolution
-	this.over_canvas.attr("width", this.real_img_size[0]*10).attr("height", this.real_img_size[1]*10);
+	this.over_canvas.attr("width", this.real_img_size[0]*this.overlay_scale).attr("height", this.real_img_size[1]*this.overlay_scale);
 
 	this.updateMjds();
 	this.updateEpochs();
@@ -1442,7 +1498,7 @@ function WiseSwapper () {
 		head = that.headers[mah_band][0],
 		window_mjds = that.window_mjds[mah_band],
 		// hidden canvas to build overlay
-		tmp_canvas = jQuery("<canvas/>",{"style":"display: none"}).prop({"width":that.real_img_size[0]*10,"height":that.real_img_size[1]*10})[0],
+		tmp_canvas = jQuery("<canvas/>",{"style":"display: none"}).prop({"width":that.real_img_size[0]*that.overlay_scale,"height":that.real_img_size[1]*that.overlay_scale})[0],
 		shifting = that.shift_input.prop("checked"),
 		shift_pmra = that.pmra_input.val(),
 		shift_pmdec = that.pmdec_input.val();
@@ -1488,16 +1544,16 @@ function WiseSwapper () {
 
 		    // Circle for current position and plx
 		    ctx.beginPath();
-		    ctx.arc(px*10,py*10,Math.max(0.1,plx/50)*10,0,2*Math.PI);
-		    ctx.strokeStyle = "#009900";
-		    ctx.lineWidth = 1;
+		    ctx.arc(px*that.overlay_scale,py*that.overlay_scale,Math.max(0.1,plx/50)*that.overlay_scale,0,2*Math.PI);
+		    ctx.strokeStyle = "#00aa00";
+		    ctx.lineWidth = 2;
 		    ctx.stroke();
 		    ctx.closePath();
 		    
 		    // Line for pm
 		    ctx.beginPath();
-		    ctx.moveTo(first_px*10,first_py*10);
-		    ctx.lineTo(last_px*10,last_py*10);
+		    ctx.moveTo(first_px*that.overlay_scale,first_py*that.overlay_scale);
+		    ctx.lineTo(last_px*that.overlay_scale,last_py*that.overlay_scale);
 		    ctx.stroke();
 		    ctx.closePath();
 		}
@@ -1674,9 +1730,9 @@ jQuery(function () {
 	    jQuery("#"+evt.target.id).val(2000);
 	}}.bind(ws));
     
-    jQuery("#daCanvas").on("mouseup", ws.move_up.bind(ws));
-    jQuery("#daCanvas").on("mousedown", ws.move_down.bind(ws));
-    jQuery("#daCanvas").on("mousemove", ws.move_move.bind(ws));
+    jQuery("#overlayCanvas").on("mouseup", ws.move_up.bind(ws));
+    jQuery("#overlayCanvas").on("mousedown", ws.move_down.bind(ws));
+    jQuery("#overlayCanvas").on("mousemove", ws.move_move.bind(ws));
     jQuery(".urlers").on("change", ws.updateUrl.bind(ws));
     jQuery(".resetters").on("change", ws.restart.bind(ws));
     //jQuery("#speedInput").on('change', ws.updateSpeed.bind(ws));
