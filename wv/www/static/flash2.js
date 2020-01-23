@@ -733,7 +733,10 @@ function WiseSwapper () {
 	    //this.context.drawImage(image, 0, 0);
 	    this.context.putImageData(image,0,0);
 	    //this.over_context.putImageData(new ImageData(1,1),0,0);
-	    this.over_context.clearRect(0,0,this.over_canvas.width(),this.over_canvas.height());
+	    this.over_context.clearRect(0,0,this.over_canvas.width()*this.overlay_scale,this.over_canvas.height()*this.overlay_scale);
+	    //this.over_context.beginPath()
+	    //this.over_context.fillStyle = "rgba(0, 0, 0, 0)";
+	    //this.over_context.fillRect(0,0,this.over_canvas.width(),this.over_canvas.height());
 	    
 	    //console.log(this.overlays)
 	    // TODO: YOU WHERE HERE. whys it making the canvas larger and blank?
@@ -888,7 +891,7 @@ function WiseSwapper () {
 	    pxd = pxd+head.cards.NAXIS1.value/2, pyd = pyd+head.cards.NAXIS2.value/2,
 	    // Add to move to center of pixel?
 	    px = pxd+.5, py = pyd-.5;
-	console.log("px: "+px+" xd: "+xx+" py:"+py+" yd: "+yy)
+	//console.log("px: "+px+" xd: "+xx+" py:"+py+" yd: "+yy)
 	//px = tile_px+pxd, py = tile_py+pyd;
 	return {"px": px, "py": py};
     };
@@ -1500,6 +1503,8 @@ function WiseSwapper () {
 		// hidden canvas to build overlay
 		tmp_canvas = jQuery("<canvas/>",{"style":"display: none"}).prop({"width":that.real_img_size[0]*that.overlay_scale,"height":that.real_img_size[1]*that.overlay_scale})[0],
 		shifting = that.shift_input.prop("checked"),
+		// Try w/o shift adjust for jackie
+		shifting = false,
 		shift_pmra = that.pmra_input.val(),
 		shift_pmdec = that.pmdec_input.val();
 	    var ctx = tmp_canvas.getContext("2d");
