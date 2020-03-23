@@ -355,10 +355,22 @@ function WiseSwapper () {
     this.manual_bright_input = jQuery("#manualBrightInput");
     this.outer_epochs_input = jQuery("#outerEpochsInput");
     this.unique_windows_input = jQuery("#uniqueWindowInput");
-    this.reregister_input = jQuery("#reregisterInput");
+    this.smooth_scan_input = jQuery("#smoothScanInput");
+    this.smooth_phase_input = jQuery("#smoothPhaseInput");
+    this.smooth_band_input = jQuery("#smoothBandInput");
     this.shift_input = jQuery("#shiftInput");
     this.pmra_input = jQuery("#pmraInput");
     this.pmdec_input = jQuery("#pmdecInput");
+    this.synth_input = jQuery("#synthInput");
+    this.synth_sub_input = jQuery("#synthSubInput");
+    this.synth_ra_input = jQuery("#synthRaInput");
+    this.synth_dec_input = jQuery("#synthDecInput");
+    this.synth_w1_input = jQuery("#synthW1Input");
+    this.synth_w2_input = jQuery("#synthW2Input");
+    this.synth_pmra_input = jQuery("#synthPmraInput");
+    this.synth_pmdec_input = jQuery("#synthPmdecInput");
+    this.synth_mjd_input = jQuery("#synthMjdInput");
+    
 
     this.updateSpeed = function () {
         clearInterval(this.interval);
@@ -406,10 +418,21 @@ function WiseSwapper () {
 	    manual_bright: manual_bright,
 	    outer_epochs: this.outer_epochs_input.prop("checked") ? 1 : 0,
 	    unique_window: this.unique_windows_input.prop("checked") ? 1 : 0,
-	    reregister: this.reregister_input.prop("checked") ? 1 : 0,
+	    smooth_scan: this.smooth_scan_input.prop("checked") ? 1 : 0,
+	    smooth_phase: this.smooth_phase_input.prop("checked") ? 1 : 0,
+	    smooth_band: this.smooth_band_input.prop("checked") ? 1 : 0,
 	    shift: this.shift_input.prop("checked") ? 1 : 0,
 	    pmra: this.pmra_input.val(),
 	    pmdec: this.pmdec_input.val(),
+	    synth: this.synth_input.prop("checked") ? 1 : 0,
+	    synth_sub: this.synth_sub_input.prop("checked") ? 1 : 0,
+	    synth_ra: this.synth_ra_input.val(),
+	    synth_dec: this.synth_dec_input.val(),
+	    synth_w1: this.synth_w1_input.val(),
+	    synth_w2: this.synth_w2_input.val(),
+	    synth_pmra: this.synth_pmra_input.val(),
+	    synth_pmdec: this.synth_pmdec_input.val(),
+	    synth_mjd: this.synth_mjd_input.val()
         };
 	return jQuery.param(args);
     };
@@ -542,7 +565,18 @@ function WiseSwapper () {
         this.manual_bright_input.prop("checked", false);
         this.outer_epochs_input.prop("checked", false);
         this.unique_windows_input.prop("checked", true);
-        this.reregister_input.prop("checked", false);
+        this.smooth_scan_input.prop("checked", false);
+        this.smooth_phase_input.prop("checked", false);
+        this.smooth_band_input.prop("checked", false);
+        this.synth_input.prop("checked", false);
+	this.synth_sub.input.prop("checked", false);
+	this.synth_ra.input.val();
+	this.synth_dec.input.val();
+	this.synth_w1.input.val();
+	this.synth_w2.input.val();
+	this.synth_pmra.input.val(0);
+	this.synth_pmdec.input.val(0);
+	this.synth_mjd.input.val();
     };
 
     this.setDefaults = function () {
@@ -656,11 +690,22 @@ function WiseSwapper () {
         this.manual_bright_input.prop("checked", (map.manual_bright || 1) == 1);
         this.outer_epochs_input.prop("checked", (map.outer_epochs || 0) == 1);
         this.unique_windows_input.prop("checked", (map.unique_window || 1) == 1);
-        this.reregister_input.prop("checked", (map.reregister || 0) == 1);
+        this.smooth_scan_input.prop("checked", (map.smooth_scan || 0) == 1);
+        this.smooth_phase_input.prop("checked", (map.smooth_phase || 0) == 1);
+        this.smooth_band_input.prop("checked", (map.smooth_band || 0) == 1);
 	this.shift_input.prop("checked", (map.shift || 0) == 1);
         this.pmra_input.val(map.pmra || 0);
         this.pmdec_input.val(map.pmdec || 0);
         this.update_zoom_input((Number(map.zoom) || 9));
+        this.synth_input.prop("checked", (map.synth || 0) == 1);
+        this.synth_sub_input.prop("checked", (map.synth_sub || 0) == 1);
+        this.synth_ra_input.val(map.synth_ra || "");
+        this.synth_dec_input.val(map.synth_dec || "");
+        this.synth_w1_input.val(map.synth_w1 || "");
+        this.synth_w2_input.val(map.synth_w2 || "");
+        this.synth_pmra_input.val(map.synth_pmra || 0);
+        this.synth_pmdec_input.val(map.synth_pmdec || 0);
+	this.synth_mjd_input.val(map.synth_mjd || "");
 
         this.restart();
     };
@@ -1007,10 +1052,21 @@ function WiseSwapper () {
 	     window: this.window_input.slider("option","value"),
 	     diff_window: this.diff_window_input.slider("option","value"),
 	     unique: this.unique_windows_input.prop("checked") ? 1 : 0,
-	     reregister: this.reregister_input.prop("checked") ? 1 : 0,
+	     smooth_scan: this.smooth_scan_input.prop("checked") ? 1 : 0,
+	     smooth_phase: this.smooth_phase_input.prop("checked") ? 1 : 0,
+	     smooth_band: this.smooth_band_input.prop("checked") ? 1 : 0,
 	     shift: this.shift_input.prop("checked") ? 1 : 0,
 	     pmx: (this.pmra_input.val()/1000.)/2.75,
 	     pmy: (this.pmdec_input.val()/1000.)/2.75,
+	     synth: this.synth_input.prop("checked") ? 1 : 0,
+	     synth_sub: this.synth_sub_input.prop("checked") ? 1 : 0,
+	     synth_ra: this.synth_ra_input.val(),
+	     synth_dec: this.synth_dec_input.val(),
+	     synth_w1: this.synth_w1_input.val(),
+	     synth_w2: this.synth_w2_input.val(),
+	     synth_pmra: this.synth_pmra_input.val(),
+	     synth_pmdec: this.synth_pmdec_input.val(),
+	     synth_mjd: this.synth_mjd_input.val(),
 	    },
 	    function (meta) {
 		var promises = [],
@@ -1636,6 +1692,17 @@ function WiseSwapper () {
 	    jQuery("#pmdecDiv").show();
 	}
 	
+	if (this.synth_input.prop("checked")) {
+	    jQuery("#synthSubDiv").show();
+	    jQuery("#synthRaDiv").show();
+	    jQuery("#synthDecDiv").show();
+	    jQuery("#synthW1Div").show();
+	    jQuery("#synthW2Div").show();
+	    jQuery("#synthPmraDiv").show();
+	    jQuery("#synthPmdecDiv").show();
+	    jQuery("#synthMjdDiv").show();
+	}
+	
 	if (jQuery("#manualBrightInput").prop("checked")) {
 	    jQuery("#trimbrightRow").show();
 	    jQuery("#linearRow").show();
@@ -1680,6 +1747,28 @@ function WiseSwapper () {
 	} else {
 	    jQuery("#pmraDiv").hide();
 	    jQuery("#pmdecDiv").hide();
+	}
+    };
+
+    this.showhide_synth = function(evt) {
+	if (evt.target.checked) {
+	    jQuery("#synthSubDiv").show();
+	    jQuery("#synthRaDiv").show();
+	    jQuery("#synthDecDiv").show();
+	    jQuery("#synthW1Div").show();
+	    jQuery("#synthW2Div").show();
+	    jQuery("#synthPmraDiv").show();
+	    jQuery("#synthPmdecDiv").show();
+	    jQuery("#synthMjdDiv").show();
+	} else {
+	    jQuery("#synthSubDiv").hide();
+	    jQuery("#synthRaDiv").hide();
+	    jQuery("#synthDecDiv").hide();
+	    jQuery("#synthW1Div").hide();
+	    jQuery("#synthW2Div").hide();
+	    jQuery("#synthPmraDiv").hide();
+	    jQuery("#synthPmdecDiv").hide();
+	    jQuery("#synthMjdDiv").hide();
 	}
     };
 
@@ -1759,6 +1848,7 @@ jQuery(function () {
     //jQuery("#advInput").on("change", ws.showhide_adv.bind(ws));
     jQuery("#diffInput").on("change", ws.showhide_diff.bind(ws));
     jQuery("#shiftInput").on("change", ws.showhide_shift.bind(ws));
+    jQuery("#synthInput").on("change", ws.showhide_synth.bind(ws));
     jQuery("#manualBrightInput").on("change", ws.showhide_trim.bind(ws));
     jQuery("#gaiaInput").on("change", ws.gaia_toggle.bind(ws));
 });

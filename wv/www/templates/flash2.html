@@ -109,8 +109,16 @@
             <label title="Don't show coadds that are identical to previous coadds. This creates more consistent animations" for="uniqueWindowsInput" style="display: inline;">Skip duplicate windows</label>
           </div>
           <div class="row">
-            <input type="checkbox" class="resetters" id="reregisterInput" checked>
-            <label title="Reregister (align) cutouts before adding/subtracting" for="reregisterInput" style="display: inline;">Reregister cutouts</label>
+            <input type="checkbox" class="resetters" id="smoothScanInput" checked>
+            <label title="Smooth cutouts to negate scan direction dependent PSF features" for="smoothScanInput" style="display: inline;">Smooth by scan direction</label>
+          </div>
+          <div class="row">
+            <input type="checkbox" class="resetters" id="smoothPhaseInput" checked>
+            <label title="Smooth cutouts to negate mission phase dependent PSF features" for="smoothPhaseInput" style="display: inline;">Smooth by mission phase</label>
+          </div>
+          <div class="row">
+            <input type="checkbox" class="resetters" id="smoothBandInput" checked>
+            <label title="Smooth cutouts to negate band dependent PSF features" for="smoothBandInput" style="display: inline;">Smooth by band</label>
           </div>
           <div class="row">
             <input type="checkbox" class="urlers" id="borderInput" checked>
@@ -143,14 +151,53 @@
 	      <label title="Shift images before adding them together to correct for motion" for="shiftInput" style="display: inline;">Shift and add</label>
             </div>
             <div class="row" id="pmraDiv" style="display: none">
-	      <label title="Amount to shift in RA" for="pmraInput" style="display: inline;">pmra (mas/yr)</label>
 	      <input type="text" class="resetters" id="pmraInput">
+	      <label title="Amount to shift in RA" for="pmraInput" style="display: inline;">pmra (mas/yr)</label>
             </div>
             <div class="row" id="pmdecDiv" style="display: none">
               <div>
-		<label title="Amount to shift in Dec" for="pmdecInput" style="display: inline;">pmdec (mas/yr)</label>
 		<input type="text" class="resetters" id="pmdecInput">
+		<label title="Amount to shift in Dec" for="pmdecInput" style="display: inline;">pmdec (mas/yr)</label>
               </div>
+            </div>
+	  </div>
+
+	  <div class="subsettings">
+            <div class="row">
+	      <input type="checkbox" class="resetters" id="synthInput">
+	      <label title="Project a synthetic object" for="synthInput" style="display: inline;">Synthetic Object</label>
+            </div>
+            <div class="row" id="synthSubDiv" style="display: none">
+	      <input type="checkbox" class="resetters" id="synthSubInput">
+	      <label title="Subtract, instead of add, the object" for="synthSubInput" style="display: inline;">Subtraction</label>
+            </div>
+            <div class="row" id="synthRaDiv" style="display: none">
+	      <input type="text" class="resetters" id="synthRaInput">
+	      <label title="Position of synth at given MJD" for="synthRaInput" style="display: inline;">RA</label>
+            </div>
+            <div class="row" id="synthDecDiv" style="display: none">
+	      <input type="text" class="resetters" id="synthDecInput">
+	      <label title="Position of synth at given MJD" for="synthDecInput" style="display: inline;">Dec</label>
+            </div>
+            <div class="row" id="synthW1Div" style="display: none">
+	      <input type="text" class="resetters" id="synthW1Input">
+	      <label title="W1 magnitude" for="synthW1Input" style="display: inline;">W1 magnitude</label>
+            </div>
+            <div class="row" id="synthW2Div" style="display: none">
+	      <input type="text" class="resetters" id="synthW2Input">
+	      <label title="W2 magnitude" for="synthW2Input" style="display: inline;">W2 magnitude</label>
+            </div>
+            <div class="row" id="synthPmraDiv" style="display: none">
+	      <input type="text" class="resetters" id="synthPmraInput">
+	      <label title="Amount to shift in RA" for="synthPmraInput" style="display: inline;">pmra (mas/yr)</label>
+            </div>
+            <div class="row" id="synthPmdecDiv" style="display: none">
+		<input type="text" class="resetters" id="synthPmdecInput">
+		<label title="Amount to shift in Dec" for="synthPmdecInput" style="display: inline;">pmdec (mas/yr)</label>
+            </div>
+            <div class="row" id="synthMjdDiv" style="display: none">
+		<input type="text" class="resetters" id="synthMjdInput">
+		<label title="MJD when object is at RA/Dec" for="synthMjdInput" style="display: inline;">Reference MJD</label>
             </div>
 	  </div>
 	</div>
