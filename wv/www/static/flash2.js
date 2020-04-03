@@ -344,6 +344,8 @@ function WiseSwapper () {
     this.context = this.canvas.get(0).getContext("2d");
     this.over_canvas = jQuery("#overlayCanvas");
     this.over_context = this.over_canvas.get(0).getContext("2d");
+    this.rebase_input = jQuery("#rebaseInput");
+    this.rebase_e_input = jQuery("#rebaseEInput");
     this.border_input = jQuery("#borderInput");
     this.gaia_input = jQuery("#gaiaInput");
     this.adv_input = jQuery("#advInput");
@@ -407,6 +409,8 @@ function WiseSwapper () {
 	    linear: this.linear_input.slider("option","value"),
 	    color: this.color_input.val(),
 	    zoom: zoom,
+	    rebase: this.rebase_input.prop("checked") ? 1 : 0,
+	    rebase_e: this.rebase_e_input.prop("checked") ? 1 : 0,
 	    border: this.border_input.prop("checked") ? 1 : 0,
 	    gaia: this.gaia_input.prop("checked") ? 1 : 0,
 	    adv: this.adv_input.prop("checked") ? 1 : 0,
@@ -555,6 +559,8 @@ function WiseSwapper () {
 	this.shift_input.prop("checked", false);
         this.pmra_input.val(0);
         this.pmdec_input.val(0);
+        this.rebase_input.prop("checked", false);
+        this.rebase_e_input.prop("checked", false);
         this.border_input.prop("checked", false);
         this.gaia_input.prop("checked", false);
         this.invert_input.prop("checked", true);
@@ -679,6 +685,8 @@ function WiseSwapper () {
 	this.updateWindowValue(Number(map.window) || 0.5);
 	this.updateDiffWindowValue(Number(map.diff_window) || 1.0);
 	    
+        this.rebase_input.prop("checked", (map.rebase || 0) == 1);
+        this.rebase_e_input.prop("checked", (map.rebase_e || 0) == 1);
         this.border_input.prop("checked", (map.border || 0) == 1);
         this.gaia_input.prop("checked", (map.gaia || 0) == 1);
         this.adv_input.prop("checked", (map.adv || 0) == 1);
@@ -1042,9 +1050,10 @@ function WiseSwapper () {
     this.get_cutouts = function (ra,dec,size,band) {
 	var bound_band = band;
 	console.log("Downloading and parsing unWISE FITS cutouts")
-	jQuery.getJSON(
-	    "https://n7z4i9pzx8.execute-api.us-west-2.amazonaws.com/prod/meta-coadds",
-	    {ra: ra, dec: dec, band: band, size: size,
+	jQuery.ajax({
+	    url: "https://n7z4i9pzx8.execute-api.us-west-2.amazonaws.com/prod/meta-coadds",
+	    datatype: "jsonp",
+	    data: {ra: ra, dec: dec, band: band, size: size,
 	     diff: this.diff_input.prop("checked") ? 1 : 0,
 	     scandir: this.scandir_input.prop("checked") ? 1 : 0,
 	     outer: this.outer_epochs_input.prop("checked") ? 1 : 0,
@@ -1052,6 +1061,8 @@ function WiseSwapper () {
 	     window: this.window_input.slider("option","value"),
 	     diff_window: this.diff_window_input.slider("option","value"),
 	     unique: this.unique_windows_input.prop("checked") ? 1 : 0,
+	     rebase: this.rebase_input.prop("checked") ? 1 : 0,
+	     rebase_e: this.rebase_e_input.prop("checked") ? 1 : 0,
 	     smooth_scan: this.smooth_scan_input.prop("checked") ? 1 : 0,
 	     smooth_phase: this.smooth_phase_input.prop("checked") ? 1 : 0,
 	     smooth_band: this.smooth_band_input.prop("checked") ? 1 : 0,
@@ -1068,7 +1079,7 @@ function WiseSwapper () {
 	     synth_pmdec: this.synth_pmdec_input.val(),
 	     synth_mjd: this.synth_mjd_input.val(),
 	    },
-	    function (meta) {
+	    success: function (meta) {
 		var promises = [],
 		    mah_band = "ims" in meta[1] ? 1 : 2;
 		
@@ -1104,7 +1115,14 @@ function WiseSwapper () {
 		    // make some images
 		    that.make_images(meta);
 		});
-	    }
+	    },
+	    retries: 6,
+	    error: function(xhr, textStatus, errorThrown) {
+		if (xhr.status != 504 || this.retries-- <= 0) {
+		    return;
+		}
+		jQuery.ajax(this);
+	    }}
 	);
     };
 
