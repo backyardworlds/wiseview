@@ -121,6 +121,14 @@
             <label title="Smooth cutouts to negate band dependent PSF features" for="smoothBandInput" style="display: inline;">Smooth by band</label>
           </div>
           <div class="row">
+            <input type="checkbox" class="resetters" id="rebaseInput" checked>
+            <label title="Scale coadds to compatible flux median and scales" for="rebaseInput" style="display: inline;">Rebase coadds</label>
+          </div>
+          <div class="row">
+            <input type="checkbox" class="resetters" id="rebaseEInput" checked>
+            <label title="Scale coadds to compatible flux median and scales" for="rebaseEInput" style="display: inline;">Rebase experimental</label>
+          </div>
+          <div class="row">
             <input type="checkbox" class="urlers" id="borderInput" checked>
             <label title="Highlight when the animation restarts by bordering the first coadd with a white checked line" for="borderInput" style="display: inline;">Border epoch 0</label>
           </div>
@@ -260,7 +268,6 @@
       <p id="epoch-legend-value"></p>
     </div>
     <div id="image-field">
-      <p><i>DEV SERVICE (:8080) INTENTIONALLY OFFLINE/BUSTED DURING DEVELOPMENT</i></p>
       <p id="verValue">Loading...</p>
       <div id="image">
 	<div id="border">
