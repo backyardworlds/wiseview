@@ -363,15 +363,24 @@ function WiseSwapper () {
     this.shift_input = jQuery("#shiftInput");
     this.pmra_input = jQuery("#pmraInput");
     this.pmdec_input = jQuery("#pmdecInput");
-    this.synth_input = jQuery("#synthInput");
-    this.synth_sub_input = jQuery("#synthSubInput");
-    this.synth_ra_input = jQuery("#synthRaInput");
-    this.synth_dec_input = jQuery("#synthDecInput");
-    this.synth_w1_input = jQuery("#synthW1Input");
-    this.synth_w2_input = jQuery("#synthW2Input");
-    this.synth_pmra_input = jQuery("#synthPmraInput");
-    this.synth_pmdec_input = jQuery("#synthPmdecInput");
-    this.synth_mjd_input = jQuery("#synthMjdInput");
+    this.synth_a_input = jQuery("#synthAInput");
+    this.synth_a_sub_input = jQuery("#synthASubInput");
+    this.synth_a_ra_input = jQuery("#synthARaInput");
+    this.synth_a_dec_input = jQuery("#synthADecInput");
+    this.synth_a_w1_input = jQuery("#synthAW1Input");
+    this.synth_a_w2_input = jQuery("#synthAW2Input");
+    this.synth_a_pmra_input = jQuery("#synthAPmraInput");
+    this.synth_a_pmdec_input = jQuery("#synthAPmdecInput");
+    this.synth_a_mjd_input = jQuery("#synthAMjdInput");
+    this.synth_b_input = jQuery("#synthBInput");
+    this.synth_b_sub_input = jQuery("#synthBSubInput");
+    this.synth_b_ra_input = jQuery("#synthBRaInput");
+    this.synth_b_dec_input = jQuery("#synthBDecInput");
+    this.synth_b_w1_input = jQuery("#synthBW1Input");
+    this.synth_b_w2_input = jQuery("#synthBW2Input");
+    this.synth_b_pmra_input = jQuery("#synthBPmraInput");
+    this.synth_b_pmdec_input = jQuery("#synthBPmdecInput");
+    this.synth_b_mjd_input = jQuery("#synthBMjdInput");
     
 
     this.updateSpeed = function () {
@@ -428,15 +437,24 @@ function WiseSwapper () {
 	    shift: this.shift_input.prop("checked") ? 1 : 0,
 	    pmra: this.pmra_input.val(),
 	    pmdec: this.pmdec_input.val(),
-	    synth: this.synth_input.prop("checked") ? 1 : 0,
-	    synth_sub: this.synth_sub_input.prop("checked") ? 1 : 0,
-	    synth_ra: this.synth_ra_input.val(),
-	    synth_dec: this.synth_dec_input.val(),
-	    synth_w1: this.synth_w1_input.val(),
-	    synth_w2: this.synth_w2_input.val(),
-	    synth_pmra: this.synth_pmra_input.val(),
-	    synth_pmdec: this.synth_pmdec_input.val(),
-	    synth_mjd: this.synth_mjd_input.val()
+	    synth_a: this.synth_a_input.prop("checked") ? 1 : 0,
+	    synth_a_sub: this.synth_a_sub_input.prop("checked") ? 1 : 0,
+	    synth_a_ra: this.synth_a_ra_input.val(),
+	    synth_a_dec: this.synth_a_dec_input.val(),
+	    synth_a_w1: this.synth_a_w1_input.val(),
+	    synth_a_w2: this.synth_a_w2_input.val(),
+	    synth_a_pmra: this.synth_a_pmra_input.val(),
+	    synth_a_pmdec: this.synth_a_pmdec_input.val(),
+	    synth_a_mjd: this.synth_a_mjd_input.val(),
+	    synth_b: this.synth_b_input.prop("checked") ? 1 : 0,
+	    synth_b_sub: this.synth_b_sub_input.prop("checked") ? 1 : 0,
+	    synth_b_ra: this.synth_b_ra_input.val(),
+	    synth_b_dec: this.synth_b_dec_input.val(),
+	    synth_b_w1: this.synth_b_w1_input.val(),
+	    synth_b_w2: this.synth_b_w2_input.val(),
+	    synth_b_pmra: this.synth_b_pmra_input.val(),
+	    synth_b_pmdec: this.synth_b_pmdec_input.val(),
+	    synth_b_mjd: this.synth_b_mjd_input.val()
         };
 	return jQuery.param(args);
     };
@@ -574,15 +592,24 @@ function WiseSwapper () {
         this.smooth_scan_input.prop("checked", false);
         this.smooth_phase_input.prop("checked", false);
         this.smooth_band_input.prop("checked", false);
-        this.synth_input.prop("checked", false);
-	this.synth_sub.input.prop("checked", false);
-	this.synth_ra.input.val();
-	this.synth_dec.input.val();
-	this.synth_w1.input.val();
-	this.synth_w2.input.val();
-	this.synth_pmra.input.val(0);
-	this.synth_pmdec.input.val(0);
-	this.synth_mjd.input.val();
+        this.synth_a_input.prop("checked", false);
+	this.synth_a_sub.input.prop("checked", false);
+	this.synth_a_ra.input.val();
+	this.synth_a_dec.input.val();
+	this.synth_a_w1.input.val();
+	this.synth_a_w2.input.val();
+	this.synth_a_pmra.input.val(0);
+	this.synth_a_pmdec.input.val(0);
+	this.synth_a_mjd.input.val();
+        this.synth_b_input.prop("checked", false);
+	this.synth_b_sub.input.prop("checked", false);
+	this.synth_b_ra.input.val();
+	this.synth_b_dec.input.val();
+	this.synth_b_w1.input.val();
+	this.synth_b_w2.input.val();
+	this.synth_b_pmra.input.val(0);
+	this.synth_b_pmdec.input.val(0);
+	this.synth_b_mjd.input.val();
     };
 
     this.setDefaults = function () {
@@ -705,15 +732,24 @@ function WiseSwapper () {
         this.pmra_input.val(map.pmra || 0);
         this.pmdec_input.val(map.pmdec || 0);
         this.update_zoom_input((Number(map.zoom) || 9));
-        this.synth_input.prop("checked", (map.synth || 0) == 1);
-        this.synth_sub_input.prop("checked", (map.synth_sub || 0) == 1);
-        this.synth_ra_input.val(map.synth_ra || "");
-        this.synth_dec_input.val(map.synth_dec || "");
-        this.synth_w1_input.val(map.synth_w1 || "");
-        this.synth_w2_input.val(map.synth_w2 || "");
-        this.synth_pmra_input.val(map.synth_pmra || 0);
-        this.synth_pmdec_input.val(map.synth_pmdec || 0);
-	this.synth_mjd_input.val(map.synth_mjd || "");
+        this.synth_a_input.prop("checked", (map.synth_a || 0) == 1);
+        this.synth_a_sub_input.prop("checked", (map.synth_a_sub || 0) == 1);
+        this.synth_a_ra_input.val(map.synth_a_ra || "");
+        this.synth_a_dec_input.val(map.synth_a_dec || "");
+        this.synth_a_w1_input.val(map.synth_a_w1 || "");
+        this.synth_a_w2_input.val(map.synth_a_w2 || "");
+        this.synth_a_pmra_input.val(map.synth_a_pmra || 0);
+        this.synth_a_pmdec_input.val(map.synth_a_pmdec || 0);
+	this.synth_a_mjd_input.val(map.synth_a_mjd || "");
+        this.synth_b_input.prop("checked", (map.synth_b || 0) == 1);
+        this.synth_b_sub_input.prop("checked", (map.synth_b_sub || 0) == 1);
+        this.synth_b_ra_input.val(map.synth_b_ra || "");
+        this.synth_b_dec_input.val(map.synth_b_dec || "");
+        this.synth_b_w1_input.val(map.synth_b_w1 || "");
+        this.synth_b_w2_input.val(map.synth_b_w2 || "");
+        this.synth_b_pmra_input.val(map.synth_b_pmra || 0);
+        this.synth_b_pmdec_input.val(map.synth_b_pmdec || 0);
+	this.synth_b_mjd_input.val(map.synth_b_mjd || "");
 
         this.restart();
     };
@@ -1069,15 +1105,24 @@ function WiseSwapper () {
 	     shift: this.shift_input.prop("checked") ? 1 : 0,
 	     pmx: (this.pmra_input.val()/1000.)/2.75,
 	     pmy: (this.pmdec_input.val()/1000.)/2.75,
-	     synth: this.synth_input.prop("checked") ? 1 : 0,
-	     synth_sub: this.synth_sub_input.prop("checked") ? 1 : 0,
-	     synth_ra: this.synth_ra_input.val(),
-	     synth_dec: this.synth_dec_input.val(),
-	     synth_w1: this.synth_w1_input.val(),
-	     synth_w2: this.synth_w2_input.val(),
-	     synth_pmra: this.synth_pmra_input.val(),
-	     synth_pmdec: this.synth_pmdec_input.val(),
-	     synth_mjd: this.synth_mjd_input.val(),
+	     synth_a: this.synth_a_input.prop("checked") ? 1 : 0,
+	     synth_a_sub: this.synth_a_sub_input.prop("checked") ? 1 : 0,
+	     synth_a_ra: this.synth_a_ra_input.val(),
+	     synth_a_dec: this.synth_a_dec_input.val(),
+	     synth_a_w1: this.synth_a_w1_input.val(),
+	     synth_a_w2: this.synth_a_w2_input.val(),
+	     synth_a_pmra: this.synth_a_pmra_input.val(),
+	     synth_a_pmdec: this.synth_a_pmdec_input.val(),
+	     synth_a_mjd: this.synth_a_mjd_input.val(),
+	     synth_b: this.synth_b_input.prop("checked") ? 1 : 0,
+	     synth_b_sub: this.synth_b_sub_input.prop("checked") ? 1 : 0,
+	     synth_b_ra: this.synth_b_ra_input.val(),
+	     synth_b_dec: this.synth_b_dec_input.val(),
+	     synth_b_w1: this.synth_b_w1_input.val(),
+	     synth_b_w2: this.synth_b_w2_input.val(),
+	     synth_b_pmra: this.synth_b_pmra_input.val(),
+	     synth_b_pmdec: this.synth_b_pmdec_input.val(),
+	     synth_b_mjd: this.synth_b_mjd_input.val(),
 	    },
 	    success: function (meta) {
 		var promises = [],
@@ -1710,15 +1755,25 @@ function WiseSwapper () {
 	    jQuery("#pmdecDiv").show();
 	}
 	
-	if (this.synth_input.prop("checked")) {
-	    jQuery("#synthSubDiv").show();
-	    jQuery("#synthRaDiv").show();
-	    jQuery("#synthDecDiv").show();
-	    jQuery("#synthW1Div").show();
-	    jQuery("#synthW2Div").show();
-	    jQuery("#synthPmraDiv").show();
-	    jQuery("#synthPmdecDiv").show();
-	    jQuery("#synthMjdDiv").show();
+	if (this.synth_a_input.prop("checked")) {
+	    jQuery("#synthASubDiv").show();
+	    jQuery("#synthARaDiv").show();
+	    jQuery("#synthADecDiv").show();
+	    jQuery("#synthAW1Div").show();
+	    jQuery("#synthAW2Div").show();
+	    jQuery("#synthAPmraDiv").show();
+	    jQuery("#synthAPmdecDiv").show();
+	    jQuery("#synthAMjdDiv").show();
+	}
+	if (this.synth_b_input.prop("checked")) {
+	    jQuery("#synthBSubDiv").show();
+	    jQuery("#synthBRaDiv").show();
+	    jQuery("#synthBDecDiv").show();
+	    jQuery("#synthBW1Div").show();
+	    jQuery("#synthBW2Div").show();
+	    jQuery("#synthBPmraDiv").show();
+	    jQuery("#synthBPmdecDiv").show();
+	    jQuery("#synthBMjdDiv").show();
 	}
 	
 	if (jQuery("#manualBrightInput").prop("checked")) {
@@ -1768,25 +1823,46 @@ function WiseSwapper () {
 	}
     };
 
-    this.showhide_synth = function(evt) {
+    this.showhide_synth_a = function(evt) {
 	if (evt.target.checked) {
-	    jQuery("#synthSubDiv").show();
-	    jQuery("#synthRaDiv").show();
-	    jQuery("#synthDecDiv").show();
-	    jQuery("#synthW1Div").show();
-	    jQuery("#synthW2Div").show();
-	    jQuery("#synthPmraDiv").show();
-	    jQuery("#synthPmdecDiv").show();
-	    jQuery("#synthMjdDiv").show();
+	    jQuery("#synthASubDiv").show();
+	    jQuery("#synthARaDiv").show();
+	    jQuery("#synthADecDiv").show();
+	    jQuery("#synthAW1Div").show();
+	    jQuery("#synthAW2Div").show();
+	    jQuery("#synthAPmraDiv").show();
+	    jQuery("#synthAPmdecDiv").show();
+	    jQuery("#synthAMjdDiv").show();
 	} else {
-	    jQuery("#synthSubDiv").hide();
-	    jQuery("#synthRaDiv").hide();
-	    jQuery("#synthDecDiv").hide();
-	    jQuery("#synthW1Div").hide();
-	    jQuery("#synthW2Div").hide();
-	    jQuery("#synthPmraDiv").hide();
-	    jQuery("#synthPmdecDiv").hide();
-	    jQuery("#synthMjdDiv").hide();
+	    jQuery("#synthASubDiv").hide();
+	    jQuery("#synthARaDiv").hide();
+	    jQuery("#synthADecDiv").hide();
+	    jQuery("#synthAW1Div").hide();
+	    jQuery("#synthAW2Div").hide();
+	    jQuery("#synthAPmraDiv").hide();
+	    jQuery("#synthAPmdecDiv").hide();
+	    jQuery("#synthAMjdDiv").hide();
+	}
+    };
+    this.showhide_synth_b = function(evt) {
+	if (evt.target.checked) {
+	    jQuery("#synthBSubDiv").show();
+	    jQuery("#synthBRaDiv").show();
+	    jQuery("#synthBDecDiv").show();
+	    jQuery("#synthBW1Div").show();
+	    jQuery("#synthBW2Div").show();
+	    jQuery("#synthBPmraDiv").show();
+	    jQuery("#synthBPmdecDiv").show();
+	    jQuery("#synthBMjdDiv").show();
+	} else {
+	    jQuery("#synthBSubDiv").hide();
+	    jQuery("#synthBRaDiv").hide();
+	    jQuery("#synthBDecDiv").hide();
+	    jQuery("#synthBW1Div").hide();
+	    jQuery("#synthBW2Div").hide();
+	    jQuery("#synthBPmraDiv").hide();
+	    jQuery("#synthBPmdecDiv").hide();
+	    jQuery("#synthBMjdDiv").hide();
 	}
     };
 
@@ -1866,7 +1942,8 @@ jQuery(function () {
     //jQuery("#advInput").on("change", ws.showhide_adv.bind(ws));
     jQuery("#diffInput").on("change", ws.showhide_diff.bind(ws));
     jQuery("#shiftInput").on("change", ws.showhide_shift.bind(ws));
-    jQuery("#synthInput").on("change", ws.showhide_synth.bind(ws));
+    jQuery("#synthAInput").on("change", ws.showhide_synth_a.bind(ws));
+    jQuery("#synthBInput").on("change", ws.showhide_synth_b.bind(ws));
     jQuery("#manualBrightInput").on("change", ws.showhide_trim.bind(ws));
     jQuery("#gaiaInput").on("change", ws.gaia_toggle.bind(ws));
 });

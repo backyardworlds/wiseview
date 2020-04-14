@@ -172,43 +172,83 @@
 
 	  <div class="subsettings">
             <div class="row">
-	      <input type="checkbox" class="resetters" id="synthInput">
-	      <label title="Project a synthetic object" for="synthInput" style="display: inline;">Synthetic Object</label>
+	      <input type="checkbox" class="resetters" id="synthAInput">
+	      <label title="Project a synthetic object" for="synthAInput" style="display: inline;">Synthetic Object</label>
             </div>
-            <div class="row" id="synthSubDiv" style="display: none">
-	      <input type="checkbox" class="resetters" id="synthSubInput">
-	      <label title="Subtract, instead of add, the object" for="synthSubInput" style="display: inline;">Subtraction</label>
+            <div class="row" id="synthASubDiv" style="display: none">
+	      <input type="checkbox" class="resetters" id="synthASubInput">
+	      <label title="Subtract, instead of add, the object" for="synthASubInput" style="display: inline;">Subtraction</label>
             </div>
-            <div class="row" id="synthRaDiv" style="display: none">
-	      <input type="text" class="resetters" id="synthRaInput">
-	      <label title="Position of synth at given MJD" for="synthRaInput" style="display: inline;">RA</label>
+            <div class="row" id="synthARaDiv" style="display: none">
+	      <input type="text" class="resetters" id="synthARaInput">
+	      <label title="Position of synth at given MJD" for="synthARaInput" style="display: inline;">RA</label>
             </div>
-            <div class="row" id="synthDecDiv" style="display: none">
-	      <input type="text" class="resetters" id="synthDecInput">
-	      <label title="Position of synth at given MJD" for="synthDecInput" style="display: inline;">Dec</label>
+            <div class="row" id="synthADecDiv" style="display: none">
+	      <input type="text" class="resetters" id="synthADecInput">
+	      <label title="Position of synth at given MJD" for="synthADecInput" style="display: inline;">Dec</label>
             </div>
-            <div class="row" id="synthW1Div" style="display: none">
-	      <input type="text" class="resetters" id="synthW1Input">
-	      <label title="W1 magnitude" for="synthW1Input" style="display: inline;">W1 magnitude</label>
+            <div class="row" id="synthAW1Div" style="display: none">
+	      <input type="text" class="resetters" id="synthAW1Input">
+	      <label title="W1 magnitude" for="synthAW1Input" style="display: inline;">W1 magnitude</label>
             </div>
-            <div class="row" id="synthW2Div" style="display: none">
-	      <input type="text" class="resetters" id="synthW2Input">
-	      <label title="W2 magnitude" for="synthW2Input" style="display: inline;">W2 magnitude</label>
+            <div class="row" id="synthAW2Div" style="display: none">
+	      <input type="text" class="resetters" id="synthAW2Input">
+	      <label title="W2 magnitude" for="synthAW2Input" style="display: inline;">W2 magnitude</label>
             </div>
-            <div class="row" id="synthPmraDiv" style="display: none">
-	      <input type="text" class="resetters" id="synthPmraInput">
-	      <label title="Amount to shift in RA" for="synthPmraInput" style="display: inline;">pmra (mas/yr)</label>
+            <div class="row" id="synthAPmraDiv" style="display: none">
+	      <input type="text" class="resetters" id="synthAPmraInput">
+	      <label title="Amount to shift in RA" for="synthAPmraInput" style="display: inline;">pmra (mas/yr)</label>
             </div>
-            <div class="row" id="synthPmdecDiv" style="display: none">
-		<input type="text" class="resetters" id="synthPmdecInput">
-		<label title="Amount to shift in Dec" for="synthPmdecInput" style="display: inline;">pmdec (mas/yr)</label>
+            <div class="row" id="synthAPmdecDiv" style="display: none">
+		<input type="text" class="resetters" id="synthAPmdecInput">
+		<label title="Amount to shift in Dec" for="synthAPmdecInput" style="display: inline;">pmdec (mas/yr)</label>
             </div>
-            <div class="row" id="synthMjdDiv" style="display: none">
-		<input type="text" class="resetters" id="synthMjdInput">
-		<label title="MJD when object is at RA/Dec" for="synthMjdInput" style="display: inline;">Reference MJD</label>
+            <div class="row" id="synthAMjdDiv" style="display: none">
+		<input type="text" class="resetters" id="synthAMjdInput">
+		<label title="MJD when object is at RA/Dec" for="synthAMjdInput" style="display: inline;">Reference MJD</label>
+            </div>
+	  </div>
+
+	  <div class="subsettings">
+            <div class="row">
+	      <input type="checkbox" class="resetters" id="synthBInput">
+	      <label title="Project a synthetic object" for="synthBInput" style="display: inline;">Synthetic Object</label>
+            </div>
+            <div class="row" id="synthBSubDiv" style="display: none">
+	      <input type="checkbox" class="resetters" id="synthBSubInput">
+	      <label title="Subtract, instead of add, the object" for="synthBSubInput" style="display: inline;">Subtraction</label>
+            </div>
+            <div class="row" id="synthBRaDiv" style="display: none">
+	      <input type="text" class="resetters" id="synthBRaInput">
+	      <label title="Position of synth at given MJD" for="synthBRaInput" style="display: inline;">RA</label>
+            </div>
+            <div class="row" id="synthBDecDiv" style="display: none">
+	      <input type="text" class="resetters" id="synthBDecInput">
+	      <label title="Position of synth at given MJD" for="synthBDecInput" style="display: inline;">Dec</label>
+            </div>
+            <div class="row" id="synthBW1Div" style="display: none">
+	      <input type="text" class="resetters" id="synthBW1Input">
+	      <label title="W1 magnitude" for="synthBW1Input" style="display: inline;">W1 magnitude</label>
+            </div>
+            <div class="row" id="synthBW2Div" style="display: none">
+	      <input type="text" class="resetters" id="synthBW2Input">
+	      <label title="W2 magnitude" for="synthBW2Input" style="display: inline;">W2 magnitude</label>
+            </div>
+            <div class="row" id="synthBPmraDiv" style="display: none">
+	      <input type="text" class="resetters" id="synthBPmraInput">
+	      <label title="Amount to shift in RA" for="synthBPmraInput" style="display: inline;">pmra (mas/yr)</label>
+            </div>
+            <div class="row" id="synthBPmdecDiv" style="display: none">
+		<input type="text" class="resetters" id="synthBPmdecInput">
+		<label title="Amount to shift in Dec" for="synthBPmdecInput" style="display: inline;">pmdec (mas/yr)</label>
+            </div>
+            <div class="row" id="synthBMjdDiv" style="display: none">
+		<input type="text" class="resetters" id="synthBMjdInput">
+		<label title="MJD when object is at RA/Dec" for="synthBMjdInput" style="display: inline;">Reference MJD</label>
             </div>
 	  </div>
 	</div>
+
 	<div class="buttonRow">
 	  <button id="setPPBrightButton" class="weakButt">Plane party bright</button>
 	  <button id="setPPFaintButton" class="weakButt">Plane party faint</button>
