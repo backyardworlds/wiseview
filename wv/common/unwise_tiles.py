@@ -181,7 +181,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("ra",type=float)
     ap.add_argument("dec",type=float)
-    ap.add_argument("--atlas",default="tr_neo5_index-mjd.fits")
+    ap.add_argument("--atlas",default="tr_neo6_index-mjd.fits")
     ap.add_argument("--wcs",default="tr_neo4_wcs_sorted.csv")
     args = ap.parse_args()
 
@@ -192,4 +192,4 @@ def main():
 
 
 if __name__ == "__main__": main()
-else: __init("tr_neo5_index-mjd.fits","tr_neo4_wcs_sorted.csv")
+else: __init("tr_neo6_index-mjd.fits","tr_neo4_wcs_sorted.csv")
