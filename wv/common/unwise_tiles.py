@@ -181,15 +181,20 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("ra",type=float)
     ap.add_argument("dec",type=float)
-    ap.add_argument("--atlas",default="tr_neo6_index-mjd.fits")
+    ap.add_argument("--atlas",default="tr_neo6_index-mjd-forward.fits")
     ap.add_argument("--wcs",default="tr_neo4_wcs_sorted.csv")
     args = ap.parse_args()
 
-    __init(args.atlas,args.wcs)
+    data = aif.open(args.atlas)[1].data
 
-    epochs = get_tiles(float(args.ra),float(args.dec))
-    print epochs
+    tr_index = pd.DataFrame(data.tolist(),
+                            columns=data.names).set_index(["COADD_ID","EPOCH","BAND"])
+    print tr_index.loc[("0559p560",slice(None),2),["MJDMEAN","FORWARD"]]
+    #__init(args.atlas,args.wcs)
+
+    #epochs = get_tiles(float(args.ra),float(args.dec))
+    #print epochs
 
 
 if __name__ == "__main__": main()
-else: __init("tr_neo6_index-mjd.fits","tr_neo4_wcs_sorted.csv")
+else: __init("tr_neo6_index-mjd-forward.fits","tr_neo4_wcs_sorted.csv")

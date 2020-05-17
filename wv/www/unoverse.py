@@ -554,8 +554,9 @@ class Tiles_Page(Resource):
             res["tiles"].append({"coadd_id": str(coadd_id),
                                  "px": px, "py": py,
                                  "epochs": [{"band":int(coadd.name[2]),
-                                            "epoch":int(coadd.name[1]),
-                                            "mjdmean":float(coadd["MJDMEAN"])}
+                                             "epoch":int(coadd.name[1]),
+                                             "mjdmean":float(coadd["MJDMEAN"]),
+                                             "forward":int(coadd["FORWARD"])}
                                            for _,coadd in coadds.iterrows()]})
 
         return jsonify(res)
