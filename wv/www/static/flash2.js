@@ -925,7 +925,8 @@ function WiseSwapper () {
 	    crpix2 = head.cards.CRPIX2.value,
 	    rad = ((((crpix1-this.canvas_mouse.startX)*2.75)/3600)/(Math.cos(dec*(Math.PI/180)))),
 	    decd = ((((head.cards.NAXIS2.value - crpix2)-this.canvas_mouse.startY)*2.75)/3600),
-	    ra = ra+rad, dec = dec+decd;
+	    ra = (((ra+rad) % 360) + 360) % 360, // modulo handling negative numbers. js by default does not.....
+	    dec = dec+decd;
 	return {"ra": ra, "dec": dec};
     };
 
