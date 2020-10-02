@@ -1137,7 +1137,7 @@ function WiseSwapper () {
 		    promises = promises.concat(that.__get_cutouts(2,meta[2]));
 		}
 		Promise.all(promises).then(function () {
-		    var flat = arr_flat(meta["mjds"]),
+		    var flat = arr_flat(meta["mjds"].filter(function (x) { return x != null; })),
 			mjd_bot = Math.min(...flat),
 			mjd_top = Math.max(...flat);
 
@@ -1206,6 +1206,7 @@ function WiseSwapper () {
 	res = [];
 	for (var i = 0; i < this.window_epochs[band].length; i++) {
 	    var res2 = [];
+
 	    for (var j = 0; j < this.global_mjds.length; j++) {
 		if (this.window_epochs[band][i].indexOf(j) != -1) {
 		    res2.push("+");
@@ -1654,7 +1655,7 @@ function WiseSwapper () {
 		    
 		    var row = rows[j],
 			px = row[5], py = row[6],
-			pmra = row[3], pmdec = row[4],
+			pmra = Number(row[3]), pmdec = Number(row[4]),
 			pmra = shifting ? pmra-shift_pmra : pmra,
 			pmdec = shifting ? pmdec-shift_pmdec : pmdec,
 			// correct for pm
@@ -1670,6 +1671,12 @@ function WiseSwapper () {
 		    // Circle for current position and plx
 		    ctx.beginPath();
 		    ctx.arc(px*that.overlay_scale,py*that.overlay_scale,Math.max(0.1,plx/50)*that.overlay_scale,0,2*Math.PI);
+		    /*
+		    if(Math.abs(pmra)+Math.abs(pmdec) >= 100 ) { // Math.sqrt(Math.pow(pmra,2)+Math.pow(pmdec,2)) >= 100
+			ctx.strokeStyle = "#00aa00";
+		    } else {
+			ctx.strokeStyle = "#aa0000";
+		    }*/
 		    ctx.strokeStyle = "#00aa00";
 		    ctx.lineWidth = 2;
 		    ctx.stroke();
