@@ -940,9 +940,44 @@ function WiseSwapper () {
 	    tile_px = head.cards.CRPIX1.value,
 	    tile_py = head.cards.CRPIX2.value,
 	    // Radians
+	    torad = Math.PI/180.0,
+	    scale = 3600.0/2.75,
+	    //scale = scale/7.5
+	    ra = ra*torad,
+	    dec = dec*torad,
+	    ra0 = tile_ra*torad,
+	    dec0 = tile_dec*torad,
+	    cosc = Math.sin(dec0)*Math.sin(dec)+Math.cos(dec0)*Math.cos(dec)*Math.cos(ra-ra0),
+	    x = (Math.cos(dec)*Math.sin(ra-ra0))/cosc,
+	    y = (Math.cos(dec0)*Math.sin(dec)-Math.sin(dec0)*Math.cos(dec)*Math.cos(ra-ra0))/cosc,
+	    x = (x/torad)*scale*-1,
+	    y = (y/torad)*scale;
+
+	x = x+tile_px
+	y = y+tile_py
+
+	// flip y axis
+	y = head.cards.NAXIS2.value - y
+
+	// Nudge for fitsiness to center of pixel? Why?
+	x = x-0.5
+	y = y+0.5
+	
+	return {"px": x, "py": y};
+    };
+
+    this.__world_to_pix3 = function (ra,dec) {
+        var canvas = this.canvas[0],
+	    band = this.headers[1].length > 0 ? 1 : 2,
+	    head = this.headers[band][0],
+	    tile_ra = head.cards.CRVAL1.value,
+	    tile_dec = head.cards.CRVAL2.value,
+	    tile_px = head.cards.CRPIX1.value,
+	    tile_py = head.cards.CRPIX2.value,
+	    // Radians
 	    torad = 180/Math.PI,
 	    scale = 2.75*3600*torad,
-	    scale = scale/7.5
+	    //scale = scale/7.5
 	    ra = ra/torad,
 	    dec = dec/torad,
 	    ra0 = tile_ra/torad,
@@ -957,7 +992,8 @@ function WiseSwapper () {
 	    //pxd = pxd/7.5, pyd = pyd/7.5,
 
 	    px = tile_px+pxd,
-	    py = tile_py+pyd;
+	py = tile_py+pyd;
+	console.log("Returning: "+px+" "+py)
 	return {"px": px, "py": py};
     };
 
@@ -1643,7 +1679,7 @@ function WiseSwapper () {
 	    // Convert starting ra/dec to pixels
 	    for (var i = 0; i < rows.length; i++) {
 		var row = rows[i],
-		    pxpy = that.__world_to_pix(row[0],row[1]);
+		    pxpy = that.__world_to_pix2(row[0],row[1]);
 		row.push(pxpy["px"]);
 		row.push(pxpy["py"]);
 	    }
