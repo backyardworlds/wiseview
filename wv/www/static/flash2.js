@@ -978,11 +978,21 @@ function WiseSwapper () {
 	    pxd = pxd/2.75, pyd = pyd/2.75,
 	    xx = pxd, yy = pyd,
 	    // From edge of tile
-	    pxd = pxd+head.cards.NAXIS1.value/2, pyd = pyd+head.cards.NAXIS2.value/2,
+	    pxd = pxd+head.cards.NAXIS1.value/2, pyd = pyd+head.cards.NAXIS2.value/2;
 	    // Add to move to center of pixel?
-	    px = pxd+.5, py = pyd-.5;
-	//console.log("px: "+px+" xd: "+xx+" py:"+py+" yd: "+yy)
+        //px = pxd+.5, py = pyd-.5;
+	//px = pxd+1, py = pyd-1;
+
+	//yy = -yy;
+
+	px = tile_px+xx
+	py = tile_py-yy
+	py = head.cards.NAXIS2.value-py
+	// Why nudge to center of pixel needed?
+	px = px-0.5
+	py = py+0.5
 	//px = tile_px+pxd, py = tile_py+pyd;
+
 	return {"px": px, "py": py};
     };
 
@@ -1086,7 +1096,7 @@ function WiseSwapper () {
 
     this.get_cutouts = function (ra,dec,size,band) {
 	var bound_band = band;
-	console.log("Downloading and parsing unWISE FITS cutouts")
+
 	jQuery.ajax({
 	    url: "https://n7z4i9pzx8.execute-api.us-west-2.amazonaws.com/prod/meta-coadds",
 	    datatype: "jsonp",
@@ -1671,13 +1681,14 @@ function WiseSwapper () {
 		    // Circle for current position and plx
 		    ctx.beginPath();
 		    ctx.arc(px*that.overlay_scale,py*that.overlay_scale,Math.max(0.1,plx/50)*that.overlay_scale,0,2*Math.PI);
-		    /*
+		    
 		    if(Math.abs(pmra)+Math.abs(pmdec) >= 100 ) { // Math.sqrt(Math.pow(pmra,2)+Math.pow(pmdec,2)) >= 100
 			ctx.strokeStyle = "#00aa00";
 		    } else {
-			ctx.strokeStyle = "#aa0000";
-		    }*/
-		    ctx.strokeStyle = "#00aa00";
+			ctx.strokeStyle = "#00aa00";
+			//ctx.strokeStyle = "#aa0000";
+		    }
+		    //ctx.strokeStyle = "#00aa00";
 		    ctx.lineWidth = 2;
 		    ctx.stroke();
 		    ctx.closePath();
