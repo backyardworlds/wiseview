@@ -916,22 +916,11 @@ function WiseSwapper () {
 
 
     this.__new_pos = function () {
-        var canvas = this.canvas[0],
-	    band = this.headers[1].length > 0 ? 1 : 2,
-	    head = this.headers[band][0],
-	    ra = head.cards.CRVAL1.value,
-	    dec = head.cards.CRVAL2.value,
-	    crpix1 = head.cards.CRPIX1.value,
-	    crpix2 = head.cards.CRPIX2.value,
-	    rad = ((((crpix1-this.canvas_mouse.startX)*2.75)/3600)/(Math.cos(dec*(Math.PI/180)))),
-	    decd = ((((head.cards.NAXIS2.value - crpix2)-this.canvas_mouse.startY)*2.75)/3600),
-	    ra = (((ra+rad) % 360) + 360) % 360, // modulo handling negative numbers. js by default does not.....
-	    dec = dec+decd;
-	return {"ra": ra, "dec": dec};
+	return this.__pix_to_world(this.canvas_mouse.startX,this.canvas_mouse.startY);
     };
 
 
-    this.__world_to_pix2 = function (ra,dec) {
+    this.__world_to_pix = function (ra,dec) {
         var canvas = this.canvas[0],
 	    band = this.headers[1].length > 0 ? 1 : 2,
 	    head = this.headers[band][0],
@@ -939,10 +928,8 @@ function WiseSwapper () {
 	    tile_dec = head.cards.CRVAL2.value,
 	    tile_px = head.cards.CRPIX1.value,
 	    tile_py = head.cards.CRPIX2.value,
-	    // Radians
 	    torad = Math.PI/180.0,
 	    scale = 3600.0/2.75,
-	    //scale = scale/7.5
 	    ra = ra*torad,
 	    dec = dec*torad,
 	    ra0 = tile_ra*torad,
@@ -953,6 +940,7 @@ function WiseSwapper () {
 	    x = (x/torad)*scale*-1,
 	    y = (y/torad)*scale;
 
+	// Offset from center of tile
 	x = x+tile_px
 	y = y+tile_py
 
@@ -966,7 +954,7 @@ function WiseSwapper () {
 	return {"px": x, "py": y};
     };
 
-    this.__world_to_pix3 = function (ra,dec) {
+    this.__pix_to_world = function (x,y) {
         var canvas = this.canvas[0],
 	    band = this.headers[1].length > 0 ? 1 : 2,
 	    head = this.headers[band][0],
@@ -975,64 +963,37 @@ function WiseSwapper () {
 	    tile_px = head.cards.CRPIX1.value,
 	    tile_py = head.cards.CRPIX2.value,
 	    // Radians
-	    torad = 180/Math.PI,
-	    scale = 2.75*3600*torad,
-	    //scale = scale/7.5
+	    torad = Math.PI/180.0,
+	    scale = 3600.0/2.75,
+	    // Un-fits-nudge
+	    x = x+0.5,
+	    y = y-0.5,
+	    // Un-flip y axis
+	    y = head.cards.NAXIS2.value - y,
+	    // Move off of tile center
+	    x = x - tile_px,
+	    y = y - tile_py,
+	    // Undo CD matrix transformations
+	    x = x * -1,
+	    x = x / scale,
+	    y = y / scale,
+	    // Back to radians
+	    x = x * torad,
+	    y = y * torad,
+	    ra0 = tile_ra*torad,
+	    dec0 = tile_dec*torad,
+	    p = Math.sqrt(Math.pow(x,2)+Math.pow(y,2)),
+	    c = Math.atan(p),
+	    dec = Math.asin(Math.cos(c)*Math.sin(dec0)+((y*Math.sin(c)*Math.cos(dec0))/p)),
+	    //ra = ra0+Math.atan((x*Math.sin(c))/(p*Math.cos(dec0)*Math.cos(c)-y*Math.sin(dec0)*Math.sin(c))),
+	    ra = ra0+Math.atan2(x*Math.sin(c),p*Math.cos(dec0)*Math.cos(c)-y*Math.sin(dec0)*Math.sin(c)),
+	    // Back from radians
 	    ra = ra/torad,
-	    dec = dec/torad,
-	    ra0 = tile_ra/torad,
-	    dec0 = tile_dec/torad,
-	    
-	    A = Math.cos(dec)*Math.cos(ra-ra0),
-	    F = scale/((Math.sin(dec0)*Math.sin(dec)) + (A*Math.cos(dec0))),
-	    
-	    pxd = -F*Math.cos(dec)*Math.sin(ra-ra0),
-	    pyd = -F*((Math.cos(dec0)*Math.sin(dec)) - (A*Math.sin(dec0))),
+	    dec = dec/torad;
 
-	    //pxd = pxd/7.5, pyd = pyd/7.5,
-
-	    px = tile_px+pxd,
-	py = tile_py+pyd;
-	console.log("Returning: "+px+" "+py)
-	return {"px": px, "py": py};
+	return {"ra": ra, "dec": dec};
     };
 
-
-    this.__world_to_pix = function (ra,dec) {
-        var canvas = this.canvas[0],
-	    band = this.headers[1].length > 0 ? 1 : 2,
-	    head = this.headers[band][0],
-	    tile_ra = head.cards.CRVAL1.value,
-	    tile_dec = head.cards.CRVAL2.value,
-	    tile_px = head.cards.CRPIX1.value,
-	    tile_py = head.cards.CRPIX2.value,
-	    pxd = (tile_ra-ra)*(Math.cos(dec*(Math.PI/180))),
-	    pyd = (tile_dec-dec),
-	    // asec
-	    pxd = pxd*3600, pyd = pyd*3600,
-	    // pixels
-	    pxd = pxd/2.75, pyd = pyd/2.75,
-	    xx = pxd, yy = pyd,
-	    // From edge of tile
-	    pxd = pxd+head.cards.NAXIS1.value/2, pyd = pyd+head.cards.NAXIS2.value/2;
-	    // Add to move to center of pixel?
-        //px = pxd+.5, py = pyd-.5;
-	//px = pxd+1, py = pyd-1;
-
-	//yy = -yy;
-
-	px = tile_px+xx
-	py = tile_py-yy
-	py = head.cards.NAXIS2.value-py
-	// Why nudge to center of pixel needed?
-	px = px-0.5
-	py = py+0.5
-	//px = tile_px+pxd, py = tile_py+pyd;
-
-	return {"px": px, "py": py};
-    };
-
-    
     this.new_fov = function (fov) {
         var pos = this.__new_pos(),
 	    current_zoom = this.zoom_input.slider("option","value"),
@@ -1679,7 +1640,9 @@ function WiseSwapper () {
 	    // Convert starting ra/dec to pixels
 	    for (var i = 0; i < rows.length; i++) {
 		var row = rows[i],
-		    pxpy = that.__world_to_pix2(row[0],row[1]);
+		    pxpy = that.__world_to_pix(row[0],row[1]);
+		radec = that.__pix_to_world(pxpy["px"],pxpy["py"]);
+		console.log("input: "+row[0]+" "+row[1]+" pxpy: "+pxpy["px"]+" "+pxpy["py"]+" radec: "+radec["ra"]+" "+radec["dec"])
 		row.push(pxpy["px"]);
 		row.push(pxpy["py"]);
 	    }
@@ -1721,8 +1684,8 @@ function WiseSwapper () {
 		    if(Math.abs(pmra)+Math.abs(pmdec) >= 100 ) { // Math.sqrt(Math.pow(pmra,2)+Math.pow(pmdec,2)) >= 100
 			ctx.strokeStyle = "#00aa00";
 		    } else {
-			ctx.strokeStyle = "#00aa00";
-			//ctx.strokeStyle = "#aa0000";
+			//ctx.strokeStyle = "#00aa00";
+			ctx.strokeStyle = "#aa0000";
 		    }
 		    //ctx.strokeStyle = "#00aa00";
 		    ctx.lineWidth = 2;
