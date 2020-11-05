@@ -1684,8 +1684,8 @@ function WiseSwapper () {
 		    if(Math.abs(pmra)+Math.abs(pmdec) >= 100 ) { // Math.sqrt(Math.pow(pmra,2)+Math.pow(pmdec,2)) >= 100
 			ctx.strokeStyle = "#00aa00";
 		    } else {
-			//ctx.strokeStyle = "#00aa00";
-			ctx.strokeStyle = "#aa0000";
+			ctx.strokeStyle = "#00aa00";
+			//ctx.strokeStyle = "#aa0000";
 		    }
 		    //ctx.strokeStyle = "#00aa00";
 		    ctx.lineWidth = 2;
