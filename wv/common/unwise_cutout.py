@@ -29,6 +29,7 @@ def cutout(fitsfileobj,ra,dec,size,fits=False,scamp=None,
 
     # Get pixel coordinates from ra,dec
     px,py = wcs.wcs_world2pix(np.array([[ra,dec]]),0)[0]
+    px += 0.5; py += 0.5
 
     # Calculate bottom and left positions of cutout
     bot = int(py)-int(size/2)
@@ -50,10 +51,12 @@ def cutout(fitsfileobj,ra,dec,size,fits=False,scamp=None,
         cpy = min(py,int(size/2)
                   # Preserve fractional pixel value
                   +(py-int(py)))
-        cutf.header["CRPIX1"] = cpx+1 # Fits counts px starting at 1
-        cutf.header["CRPIX2"] = cpy+1 # Fits counts px starting at 1
-        cutf.header["CRVAL1"] = ra
-        cutf.header["CRVAL2"] = dec
+        cutf.header["CRPIX1"] = 1024.5 - int(px) + int(cpx)
+        cutf.header["CRPIX2"] = 1024.5 - int(py) + int(cpy)
+        #cutf.header["CRPIX1"] = cpx+1 # Fits counts px starting at 1
+        #cutf.header["CRPIX2"] = cpy+1 # Fits counts px starting at 1
+        #cutf.header["CRVAL1"] = ra
+        #cutf.header["CRVAL2"] = dec
         
         sio = StringIO.StringIO()
         cutf.writeto(sio)
