@@ -1615,7 +1615,7 @@ function WiseSwapper () {
 		lang: "adql",
 		format: "json",
 		query: "SELECT ra, dec, parallax, pmra, pmdec "+
-		    "FROM gaiadr2.gaia_source "+
+		    "FROM gaiaedr3.gaia_source "+
 		    "WHERE 1=CONTAINS(POINT('ICRS',ra,dec), "+
 		    "  CIRCLE('ICRS',"+ra+","+dec+","+size_deg+"))"
 	    },
