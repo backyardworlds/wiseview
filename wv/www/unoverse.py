@@ -450,7 +450,7 @@ class Pawnstars_Composite(Resource):
             "DEC": args.dec,
             "filters": "giy",
             "sep": "comma"
-        })
+        }, timeout = 5)
 
         files = {}
         reader = csv.DictReader(StringIO(response.content))
@@ -492,6 +492,44 @@ class SearchV2_Page(Resource):
 api.add_resource(SearchV2_Page, "/wiseview-v2")
 
 
+class SearchV3_Page(Resource):
+    def get(self):
+        return make_response(render_template("flash3.html"))
+
+
+api.add_resource(SearchV3_Page, "/wiseview-v3")
+
+
+class SearchHOHO_Page(Resource):
+    def get(self):
+        return make_response(render_template("flashhoho.html"))
+
+
+api.add_resource(SearchHOHO_Page, "/wiseview-hoho")
+
+
+class SearchMADPROP_Page(Resource):
+    def get(self):
+        return make_response(render_template("flashmadprop.html"))
+
+
+api.add_resource(SearchMADPROP_Page, "/wiseview-madprop")
+
+
+class SearchMADFAST_Page(Resource):
+    def get(self):
+        return make_response(render_template("flashmadfast.html"))
+
+
+api.add_resource(SearchMADFAST_Page, "/wiseview-madfast")
+
+
+class SearchHELLSPOTS_Page(Resource):
+    def get(self):
+        return make_response(render_template("flashhellspots.html"))
+
+
+api.add_resource(SearchHELLSPOTS_Page, "/wiseview-hellspots") 
 
 class Xref_Page(Resource):
     def get(self):
