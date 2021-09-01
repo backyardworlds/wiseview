@@ -1,5 +1,4 @@
 from io import BytesIO, StringIO
-import re
 import csv
 import urllib
 

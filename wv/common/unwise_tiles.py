@@ -102,7 +102,7 @@ def __init(index,wcs_index):
     # and the CD parameters are identical
     # (they were as of neo3)
     tr_cutout_solutions = {}
-    wcs_index = pd.read_csv(wcs_index).head(5000)
+    wcs_index = pd.read_csv(wcs_index)
     # Has one row per tile
     for _,row in wcs_index.iterrows():
         # Store a WCS solution for the coadd
