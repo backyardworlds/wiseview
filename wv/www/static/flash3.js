@@ -268,7 +268,6 @@ function WiseSwapper () {
     this.over_context = this.over_canvas.get(0).getContext("2d");
     this.border_input = jQuery("#borderInput");
     this.gaia_input = jQuery("#gaiaInput");
-    this.adv_input = jQuery("#advInput");
     this.invert_input = jQuery("#invertInput");
     this.maxdyr_input = jQuery("#maxdyrInput");
     this.scandir_input = jQuery("#scandirInput");
@@ -332,7 +331,6 @@ function WiseSwapper () {
 	    zoom: zoom,
 	    border: this.border_input.prop("checked") ? 1 : 0,
 	    gaia: this.gaia_input.prop("checked") ? 1 : 0,
-	    adv: this.adv_input.prop("checked") ? 1 : 0,
 	    invert: this.invert_input.prop("checked") ? 1 : 0,
 	    maxdyr: this.maxdyr_input.prop("checked") ? 1 : 0,
 	    scandir: this.scandir_input.prop("checked") ? 1 : 0,
@@ -539,23 +537,69 @@ function WiseSwapper () {
 	this.updateWindowValue(0);
 	this.restart();
     };
+
+    this.v1UrlCompat = function(map) {
+	// Detect if the URL looks like a wiseview-v1 URL
+	if (!("coadd_mode" in map)) {
+	    return map;
+	}
+
+	// Convert wiseview-v1 URL to wiseview-v3
+	if (map.coadd_mode == "time-resolved") {
+	    map.window = 0;
+	} else if (map.coadd_mode.startsWith("parallax-cancelling")) {
+	    map.window = 0;
+	    map.scandir = 1;
+	} else if (map.coadd_mode == "full-depth") {
+	    map.window = 1.5;
+	} else if (map.coadd_mode == "pre-post") {
+	    map.window = 1.5;
+	    map.outer_epochs = 1;
+	} else if (map.coadd_mode == "parallax-enhancing") {
+	    map.window = 100;
+	    map.scandir = 1;
+	} else if (map.coadd_mode.startsWith("window-")
+		   && map.coadd_mode.endsWith("-year")) {
+	    m = map.coadd_mode.match(/window-([0-9\.]+)-year/);
+	    if (m !== null && m.length >= 2) {
+		map.window = Number(m[1]);
+	    }
+	} else if (map.coadd_mode.startsWith("window-")
+		   && map.coadd_mode.endsWith("-year-parallax-enhancing")) {
+	    m = map.coadd_mode.match(/window-([0-9\.]+)-year/);
+	    if (m !== null && m.length >= 2) {
+		map.window = Number(m[1]);
+		map.scandir = 1;
+	    }
+	} else if (map.coadd_mode == "shift-and-add") {
+	    map.window = 100;
+	    map.shift = 1;
+	}
+	
+    };
     
     this.fromUrl = function () {
 	// Get parameters from URI
         var raw = window.location.hash.substr(1);
         var map = {};
+	
         raw.split("&").forEach(function (kv) {
 	    var split = kv.split("=");
 	    map[split[0]] = split[1];
         });
+
+	this.v1UrlCompat(map);
+	
 	if (map.ra === undefined && map.dec === undefined) {
 	    this.loc_input.val("133.786245 -7.244372");
 	} else {
             this.loc_input.val(unescape(map.ra) + " " + unescape(map.dec));
 	}
+	
 	if (map.size > 2000) {
 	    map.size = 2000;
 	}
+	
         this.size_input.val(map.size || 176);
 	
         this.band_input.val(map.band || 2);
@@ -575,7 +619,6 @@ function WiseSwapper () {
 	    
         this.border_input.prop("checked", (map.border || 0) == 1);
         this.gaia_input.prop("checked", (map.gaia || 0) == 1);
-        this.adv_input.prop("checked", (map.adv || 0) == 1);
         this.invert_input.prop("checked", (map.invert || 1) == 1);
         this.maxdyr_input.prop("checked", (map.maxdyr || 0) == 1);
         this.scandir_input.prop("checked", (map.scandir || 0) == 1);

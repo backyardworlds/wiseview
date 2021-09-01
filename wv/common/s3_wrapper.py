@@ -4,7 +4,7 @@ import boto3
 bucket = None
 
 
-def get_bucket(name="touchspot-astro",region="us-west-2"):
+def get_bucket(name="amnh-citsci-private",region="us-west-2"):
     s3 = boto3.resource("s3",region_name=region)
     return s3.Bucket(name)
 

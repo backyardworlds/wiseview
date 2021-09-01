@@ -6,7 +6,7 @@ import sklearn.neighbors as skn
 import astropy.wcs as awcs
 import astropy.io.fits as aif
 import wv.common.rdballtree as rdbt
-import cPickle as pickle
+import pickle
 import collections
 import pandas as pd
 
@@ -40,7 +40,7 @@ def build_cutout_header(coadd):
     
     h = aif.Header()
     cards = []
-    for i in xrange(len(kwds)):
+    for i in range(len(kwds)):
         kwd = kwds[i]
         cards.append((kwd,vals[i],""))
 
@@ -81,7 +81,7 @@ def array_to_cards(arr,full=False):
             
     h = aif.Header()
     cards = []
-    for i in xrange(len(kwds)):
+    for i in range(len(kwds)):
         kwd = kwds[i]
         cards.append((kwd,vals[i],""))
 
@@ -102,7 +102,8 @@ def __init(index,wcs_index):
     # and the CD parameters are identical
     # (they were as of neo3)
     tr_cutout_solutions = {}
-    wcs_index = pd.read_csv(wcs_index)
+    wcs_index = pd.read_csv(wcs_index).head(5000)
+    print("ASDASDADS")
     # Has one row per tile
     for _,row in wcs_index.iterrows():
         # Store a WCS solution for the coadd
@@ -181,7 +182,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("ra",type=float)
     ap.add_argument("dec",type=float)
-    ap.add_argument("--atlas",default="tr_neo6_index-mjd-forward.fits")
+    ap.add_argument("--atlas",default="tr_neo7_index-mjd-forward.fits")
     ap.add_argument("--wcs",default="tr_neo4_wcs_sorted.csv")
     args = ap.parse_args()
 
@@ -189,12 +190,11 @@ def main():
 
     tr_index = pd.DataFrame(data.tolist(),
                             columns=data.names).set_index(["COADD_ID","EPOCH","BAND"])
-    print tr_index.loc[("0559p560",slice(None),2),["MJDMEAN","FORWARD"]]
+    print(tr_index.loc[("0559p560",slice(None),2),["MJDMEAN","FORWARD"]])
     #__init(args.atlas,args.wcs)
 
     #epochs = get_tiles(float(args.ra),float(args.dec))
-    #print epochs
 
 
 if __name__ == "__main__": main()
-else: __init("tr_neo6_index-mjd-forward.fits","tr_neo4_wcs_sorted.csv")
+else: __init("tr_neo7_index-mjd-forward.fits","tr_neo4_wcs_sorted.csv")

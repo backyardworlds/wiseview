@@ -1,5 +1,5 @@
 import os.path
-import cPickle as pickle
+import pickle
 import numpy as np
 import sklearn.neighbors as skn
 

@@ -1,8 +1,8 @@
-import cPickle as pickle
-import cStringIO as StringIO
+import pickle
+from io import BytesIO
 import numpy as np
 import wv.common.unwise_tiles as ut
-import wv.common.touchspot as tspot
+import wv.common.s3_wrapper as s3w
 import astropy.io.fits as aif
 import astropy.wcs as awcs
 import gzip
@@ -58,7 +58,7 @@ def cutout(fitsfileobj,ra,dec,size,fits=False,scamp=None,
         #cutf.header["CRVAL1"] = ra
         #cutf.header["CRVAL2"] = dec
         
-        sio = StringIO.StringIO()
+        sio = BytesIO()
         cutf.writeto(sio)
         sio.seek(0)
         return sio.getvalue()
@@ -90,10 +90,10 @@ def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
     wcs = ut.tr_cutout_solutions[coadd_id]
 
     # Get content from S3
-    sio = StringIO.StringIO()
+    sio = BytesIO()
     try:
-        tspot.bucket.download_fileobj(path_,sio)
-    except Exception,e:
+        s3w.bucket.download_fileobj(path_,sio)
+    except Exception as e:
         raise Exception("%s %s"%(str(e),path_))
     sio.seek(0)
 
@@ -114,15 +114,15 @@ def get_by_tile_epoch(coadd_id,epoch_num,ra,dec,band,size=None,fits=False,
              "unwise-%s-w%d-n-m.fits.gz"%(coadd_id,band)))
 
         # Get content from S3
-        sio = StringIO.StringIO()
-        tspot.bucket.download_fileobj(path_,sio)
+        sio = BytesIO()
+        s3w.bucket.download_fileobj(path_,sio)
         sio.seek(0)
         
         gz = gzip.GzipFile(fileobj=sio,mode="rb").read()
         
         # Perform cutouts if size is specified
         if size is not None:
-            sio = StringIO.StringIO(gz)
+            sio = BytesIO(gz)
             sio.seek(0)
             cm = cutout(sio,ra,dec,size,fits=fits,scamp=scamp)
         else:
@@ -145,14 +145,14 @@ def main():
     args = ap.parse_args()
 
     tiles = ut.get_tiles(args.ra,args.dec).iloc[0,:]
-    print tiles
+    print(tiles)
     cutout = get_by_tile_epoch(tiles.name[0],args.ra,args.dec,
                                args.band,args.epoch,
                                size=args.size,fits=True)
     #import sys
     #sys.stdout.write(tiles[0])
-    print "tiles",len(tiles)
-    print [len(t) for t in tiles]
+    print("tiles",len(tiles))
+    print([len(t) for t in tiles])
 
     
 if __name__ == "__main__": main()
