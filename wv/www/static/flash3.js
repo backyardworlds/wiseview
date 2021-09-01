@@ -909,8 +909,6 @@ function WiseSwapper () {
 
 
     this.__get_cutouts = function (meta) {
-	console.log(meta);
-	console.log(this.canvas);
 	// Get all the cutouts
 	for (var e = 0; e < meta["ims"].length; e++) {
 	    new_img = document.createElement("img");
@@ -935,6 +933,7 @@ function WiseSwapper () {
 		   max_dyr: this.maxdyr_input.prop("checked") ? 1 : 0,
 		   minbright: symexp10(this.trimbright.low()).toFixed(4),
 		   maxbright: symexp10(this.trimbright.high()).toFixed(4),
+		   invert: this.invert_input.prop("checked") ? 1 : 0,
 		   stretch: this.linear_input.slider("option","value"),
 		   diff: this.diff_input.prop("checked") ? 1 : 0,
 		   scandir: this.scandir_input.prop("checked") ? 1 : 0,
@@ -1089,7 +1088,6 @@ function WiseSwapper () {
 		var row = rows[i],
 		    pxpy = that.__world_to_pix(row[0],row[1]);
 		radec = that.__pix_to_world(pxpy["px"],pxpy["py"]);
-		console.log("input: "+row[0]+" "+row[1]+" pxpy: "+pxpy["px"]+" "+pxpy["py"]+" radec: "+radec["ra"]+" "+radec["dec"])
 		row.push(pxpy["px"]);
 		row.push(pxpy["py"]);
 	    }
